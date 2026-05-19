@@ -241,14 +241,21 @@ def load_ohlcv(
     cache_hit = (
         not force_refresh and cache_file.exists() and not _is_stale(meta.get(ticker), ttl_hours)
     )
+    # df is initialised here so pyright can prove it's bound after either branch.
+    # Mutating cache_hit inside the except clause is not enough for pyright to
+    # narrow the second `if df is None` — using the Optional+sentinel pattern
+    # makes the binding contract explicit.
+    df: pd.DataFrame | None = None
     if cache_hit:
         try:
             df = pd.read_parquet(cache_file)
-        except (OSError, ValueError) as exc:
+        except Exception as exc:
+            # pyarrow can raise its own non-stdlib exceptions; the semantic
+            # contract is "if the cache can't be read for any reason, refetch".
             _log.warning("corrupt cache for %s (%s); refetching", ticker, exc)
             cache_file.unlink(missing_ok=True)
-            cache_hit = False
-    if not cache_hit:
+            df = None
+    if df is None:
         source = "yfinance"
         try:
             df = _yfinance_download(ticker, start, end)
@@ -271,6 +278,7 @@ def load_ohlcv(
         }
         _write_meta(cache_dir, meta)
 
+    assert df is not None  # narrowed by both branches above
     df = df.loc[str(start) : str(end)]
     # Validate BEFORE dropna so n_nans is reported and warnings surface.
     report = validate(df, ticker)

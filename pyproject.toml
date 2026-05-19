@@ -114,6 +114,9 @@ reportAssignmentType = false
 reportReturnType = false
 reportArgumentType = false
 reportAttributeAccessIssue = false
+# pandas-stubs types .loc[] and similar indexers as returning Optional[DataFrame].
+# Same root cause as the other four suppressions above — stubs are too pessimistic.
+reportOptionalMemberAccess = false
 
 [tool.pytest.ini_options]
 minversion = "8.0"
