@@ -10,7 +10,6 @@ Three commands:
 from __future__ import annotations
 
 from dataclasses import asdict
-from pathlib import Path
 
 import pandas as pd
 import typer
@@ -127,16 +126,14 @@ def run(
 
 @app.command()
 def sweep(
-    ticker: str = typer.Option("SPY", "--ticker", "-t"),
-    start: str = typer.Option("2010-01-01", "--start"),
-    end: str = typer.Option("2024-12-31", "--end"),
-    cost_bps: float = typer.Option(5.0, "--cost-bps"),
-    output_dir: Path = typer.Option(Path("results"), "--output-dir"),
+    ticker: str = typer.Option("SPY", "--ticker", "-t", help="Symbol to sweep (e.g. SPY)"),
+    start: str = typer.Option("2010-01-01", "--start", help="In-sample start date"),
+    end: str = typer.Option("2024-12-31", "--end", help="In-sample end date"),
+    cost_bps: float = typer.Option(5.0, "--cost-bps", help="Per-side cost in basis points"),
 ) -> None:
     """Run the default 20x20 grid and report best in-sample + DSR."""
     ticker = _validate_ticker(ticker)
     _validate_date_range(start, end)
-    output_dir.mkdir(parents=True, exist_ok=True)
     try:
         close = load_close(ticker, start=start, end=end)
     except DataQualityError as exc:

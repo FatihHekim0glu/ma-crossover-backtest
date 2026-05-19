@@ -104,17 +104,20 @@ def test_psr_normal_returns_matches_paper_formula() -> None:
     """For ~Gaussian returns the Mertens variance collapses to (1 + 0.5*SR^2)/(n-1).
 
     This guards against the recurring bug of dropping the +2 from the
-    excess-kurtosis adjustment. Pre-fix, the variance was (1 + 0)/(n-1),
-    biasing the z-statistic ~sqrt(1 + 0.5*SR^2) too large.
+    excess-kurtosis adjustment. The drift must be large enough that
+    ``sr^2`` materially contributes to the variance — with zero drift
+    the ``+2`` correction is numerically invisible and the test would
+    pass under the bug.
     """
-
     rng = np.random.default_rng(0)
-    rets = pd.Series(rng.normal(0.0, 0.01, 2000), index=_bdays(2000))
+    # Daily drift 0.05 with sigma 0.01 gives SR_daily ~ 5; sr^2 ~ 25 dominates.
+    rets = pd.Series(rng.normal(0.05, 0.01, 2000), index=_bdays(2000))
     sigma = float(rets.std(ddof=1))
     sr_daily = float(rets.mean()) / sigma
     expected_var = (1.0 + 0.5 * sr_daily**2) / (len(rets) - 1)
     expected_z = sr_daily / math.sqrt(expected_var)
     expected_psr = float(_stats.norm.cdf(expected_z))
 
-    # Allow 5% tolerance for finite-sample skew/excess-kurt noise around zero.
-    assert probabilistic_sharpe_ratio(daily_returns=rets) == pytest.approx(expected_psr, abs=0.05)
+    assert probabilistic_sharpe_ratio(daily_returns=rets) == pytest.approx(
+        expected_psr, rel=1e-3, abs=1e-3
+    )

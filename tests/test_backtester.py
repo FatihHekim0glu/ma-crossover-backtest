@@ -77,6 +77,32 @@ def test_equity_stays_positive(seeded_gbm_prices: pd.Series) -> None:
     assert (result.equity > 0).all()
 
 
+@settings(max_examples=15, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@given(prices=price_series_strategy(min_size=150, max_size=300))
+def test_backtest_idempotence_and_input_unmutated(prices: pd.Series) -> None:
+    """Repeated calls yield identical results and never mutate the input.
+
+    Guards against any future regression that introduces module-level
+    caching, in-place fillna, or RNG state leakage.
+    """
+    snapshot = prices.copy()
+    r1 = run_backtest(close=prices, strategy_config=_STRATEGY)
+    r2 = run_backtest(close=prices, strategy_config=_STRATEGY)
+    pd.testing.assert_series_equal(r1.equity, r2.equity, check_names=False)
+    pd.testing.assert_series_equal(r1.positions, r2.positions, check_names=False)
+    pd.testing.assert_series_equal(prices, snapshot)
+
+
+@settings(max_examples=15, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@given(prices=price_series_strategy(min_size=150, max_size=300))
+def test_buy_and_hold_terminal_equity_equals_price_ratio(prices: pd.Series) -> None:
+    """Under zero-cost B&H, equity[-1]/equity[0] must equal price[-1]/price[0] exactly."""
+    res = run_buy_and_hold(close=prices, initial_cash=100_000.0)
+    expected = float(prices.iloc[-1] / prices.iloc[0])
+    actual = float(res.equity.iloc[-1] / res.equity.iloc[0])
+    assert actual == pytest.approx(expected, rel=1e-9, abs=1e-9)
+
+
 def test_trades_have_consistent_dates(seeded_gbm_prices: pd.Series) -> None:
     result = run_backtest(close=seeded_gbm_prices, strategy_config=_STRATEGY)
     if not result.trades.empty:

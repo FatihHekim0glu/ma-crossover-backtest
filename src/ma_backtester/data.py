@@ -19,12 +19,14 @@ import io
 import json
 import logging
 import os
+import re
 import time
 import warnings
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Final
+from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 import numpy as np
@@ -37,9 +39,21 @@ _META_FILE: Final[str] = "_meta.json"
 _JUMP_THRESHOLD: Final[float] = 0.5
 _DEFAULT_TTL_HOURS: Final[float] = 24.0
 
+# Ticker regex permits A-Z, 0-9, dot, hyphen, caret (covers BRK-B, BF.B, ^GSPC
+# style variants). Length capped at 15 to defeat path traversal via cache filename.
+_TICKER_RE: Final[re.Pattern[str]] = re.compile(r"^[A-Z0-9.\-^]{1,15}$")
+
 
 class DataQualityError(ValueError):
     """Raised when loaded OHLCV fails a sanity check that can't be auto-fixed."""
+
+
+def _safe_ticker(ticker: str) -> str:
+    """Normalise and validate a ticker for use in filenames and URLs."""
+    cleaned = ticker.strip().upper()
+    if not _TICKER_RE.fullmatch(cleaned):
+        raise DataQualityError(f"invalid ticker symbol: {ticker!r}")
+    return cleaned
 
 
 @dataclass(frozen=True, slots=True)
@@ -205,6 +219,7 @@ def load_ohlcv(
     force_refresh: bool = False,
 ) -> pd.DataFrame:
     """Load OHLCV for one ticker, hitting cache when fresh."""
+    ticker = _safe_ticker(ticker)
     end = end or date.today().isoformat()
     cache_dir.mkdir(parents=True, exist_ok=True)
     cache_file = cache_dir / f"{ticker}.parquet"
@@ -262,8 +277,10 @@ def load_from_stooq(ticker: str) -> pd.DataFrame:
 
     Stooq tickers are usually ``<TICKER>.US`` for US equities.
     """
+    ticker = _safe_ticker(ticker)
     stooq_symbol = f"{ticker.lower()}.us"
-    url = f"https://stooq.com/q/d/l/?s={stooq_symbol}&i=d"
+    query = urlencode({"s": stooq_symbol, "i": "d"})
+    url = f"https://stooq.com/q/d/l/?{query}"
     req = Request(url, headers={"User-Agent": "Mozilla/5.0 (ma-backtester)"})
     with urlopen(req, timeout=20) as resp:
         body = resp.read().decode("utf-8")

@@ -112,6 +112,26 @@ def test_sortino_annualization_factor_is_sqrt_252() -> None:
     assert sortino_ratio(rets) == pytest.approx(expected, rel=1e-12)
 
 
+def test_trade_statistics_non_empty() -> None:
+    """The whole win-rate / profit-factor / avg-holding arithmetic is exercised."""
+    from ma_backtester.metrics import trade_statistics
+
+    trades = pd.DataFrame(
+        {
+            "net_return": [0.05, -0.02, 0.10, -0.01],
+            "bars_held": [10, 5, 20, 3],
+        }
+    )
+    s = trade_statistics(trades)
+    assert s["n_trades"] == 4
+    assert s["win_rate"] == 0.5
+    # Gross wins = 0.15, gross losses = 0.03 -> PF = 5.0
+    assert s["profit_factor"] == pytest.approx(5.0, rel=1e-9)
+    assert s["avg_win"] == pytest.approx(0.075)
+    assert s["avg_loss"] == pytest.approx(-0.015)
+    assert s["avg_holding_period_days"] == pytest.approx(9.5)
+
+
 def test_sortino_higher_than_sharpe_when_skewed_positive() -> None:
     """Right-skewed positive-mean returns should make Sortino > Sharpe.
 

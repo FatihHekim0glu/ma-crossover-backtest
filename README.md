@@ -2,7 +2,7 @@
 
 ![python](https://img.shields.io/badge/python-3.12%2B-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
-![tests](https://img.shields.io/badge/tests-67%20passing-brightgreen)
+![tests](https://img.shields.io/badge/tests-passing-brightgreen)
 ![types](https://img.shields.io/badge/pyright-clean-brightgreen)
 
 A from-scratch vectorised Python backtester for the moving-average crossover strategy on US-equity ETFs, with property-tested no-lookahead invariants, Newey-West HAC alpha, and Deflated Sharpe Ratio adjustment for data-snooping.

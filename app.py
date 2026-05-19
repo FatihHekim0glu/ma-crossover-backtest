@@ -12,6 +12,7 @@ Run with::
 
 from __future__ import annotations
 
+import re
 from dataclasses import asdict
 from datetime import date
 
@@ -159,10 +160,11 @@ with st.sidebar:
         index=0,
         help="The five default ETFs span asset classes (US large/tech/small, gold, long bonds).",
     )
+    _TICKER_RE = re.compile(r"^[A-Z0-9.\-^]{1,15}$")
     if ticker == "Other...":
         ticker = st.text_input("Custom ticker", value="VTI").strip().upper()
-        if not ticker:
-            st.error("Ticker cannot be empty.")
+        if not _TICKER_RE.fullmatch(ticker):
+            st.error("Ticker must match [A-Z0-9.\\-^], max 15 chars (e.g. BRK-B, BF.B).")
             st.stop()
 
     start_date = st.date_input("Start", value=date(2010, 1, 1))

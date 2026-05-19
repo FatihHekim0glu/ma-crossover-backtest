@@ -64,6 +64,38 @@ def test_select_best_picks_max_not_min() -> None:
     assert (chosen.fast_window, chosen.slow_window) == (5, 50)
 
 
+def test_select_best_neighbourhood_tiebreak_picks_plateau() -> None:
+    """The neighbourhood tie-break (the default) should prefer plateaus over spikes.
+
+    The plateau winner sits at (10, 50) in the middle of the grid with
+    eight 0.9-Sharpe neighbours. The spike sits at (50, 200) in the far
+    corner with all-zero neighbours. Both score 1.0 in-sample, so the
+    tie-break must come down to neighbourhood mean.
+    """
+    sweep = SweepConfig(
+        fast_windows=(5, 10, 20, 30, 50),
+        slow_windows=(30, 50, 100, 150, 200),
+    )
+    sharpes: dict[StrategyConfig, float] = dict.fromkeys(sweep.grid(), 0.0)
+    sharpes[StrategyConfig(fast_window=10, slow_window=50)] = 1.0  # plateau winner
+    sharpes[StrategyConfig(fast_window=50, slow_window=200)] = 1.0  # isolated spike
+    plateau_neighbours = {
+        (5, 30),
+        (5, 50),
+        (5, 100),
+        (10, 30),
+        (10, 100),
+        (20, 30),
+        (20, 50),
+        (20, 100),
+    }
+    for cfg in sweep.grid():
+        if (cfg.fast_window, cfg.slow_window) in plateau_neighbours:
+            sharpes[cfg] = 0.9
+    chosen = _select_best(sharpes, sweep, use_neighbourhood=True)
+    assert (chosen.fast_window, chosen.slow_window) == (10, 50)
+
+
 def test_select_best_deterministic_tie_break() -> None:
     """When multiple configs tie on Sharpe, sort lexicographically."""
     sweep = SweepConfig(fast_windows=(5, 10), slow_windows=(20, 50))
