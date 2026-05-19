@@ -143,7 +143,6 @@ NB2 = notebook([
     ),
     code(
         "import pandas as pd\n"
-        "import numpy as np\n"
         "\n"
         "from ma_backtester.backtester import sweep as run_sweep\n"
         "from ma_backtester.config import DEFAULT_SWEEP, CostConfig, StrategyConfig\n"
@@ -238,7 +237,6 @@ NB3 = notebook([
     ),
     code(
         "import pandas as pd\n"
-        "import numpy as np\n"
         "import plotly.graph_objects as go\n"
         "from dataclasses import asdict\n"
         "\n"
@@ -401,6 +399,17 @@ NB4 = notebook([
         "already very hard to beat in a long bull regime). IWM is choppy and the "
         "result is usually middling."
     ),
+    md("## OOS Sharpe per ticker"),
+    code(
+        "import plotly.graph_objects as go\n"
+        "fig = go.Figure(go.Bar(x=summary.index, y=summary['OOS_sharpe']))\n"
+        "fig.update_layout(\n"
+        "    title='Out-of-sample Sharpe by ticker',\n"
+        "    xaxis_title='ticker',\n"
+        "    yaxis_title='OOS Sharpe',\n"
+        ")\n"
+        "fig"
+    ),
     code(
         "fold_df = pd.DataFrame(fold_records)\n"
         "fold_df.groupby('ticker')[['IS_sharpe', 'OOS_sharpe']].describe()"
@@ -418,6 +427,17 @@ NB5 = notebook([
         "tests, cost sensitivity, and the conclusion paragraph that goes into "
         "the README."
     ),
+    md(
+        "## TL;DR (read this first)\n\n"
+        "On SPY 2010-2024 with 5 bps per-side costs, the SMA(50, 200) crossover "
+        "**does not generate alpha statistically distinguishable from zero** "
+        "after Newey-West HAC adjustment (p = 0.69). Max drawdown is essentially "
+        "identical to buy-and-hold — the common claim that crossover rules "
+        "reduce drawdowns is not supported on this asset and period. This is "
+        "the expected academic consensus (Bajgrowicz & Scaillet 2012) and the "
+        "project is structured to demonstrate *how to evaluate that honestly*, "
+        "not to find a working strategy."
+    ),
     code(
         "import pandas as pd\n"
         "from dataclasses import asdict\n"
@@ -430,7 +450,7 @@ NB5 = notebook([
         "from ma_backtester.metrics import (\n"
         "    annualised_volatility, cagr, max_drawdown, sharpe_ratio,\n"
         ")\n"
-        "from ma_backtester.plotting import equity_curve, install_theme\n"
+        "from ma_backtester.plotting import equity_curve, install_theme, underwater_drawdown\n"
         "\n"
         "install_theme()"
     ),
@@ -459,9 +479,23 @@ NB5 = notebook([
         "        'Final equity': float(bench.equity.iloc[-1]),\n"
         "    },\n"
         "})\n"
-        "summary"
+        "summary.style.format({\n"
+        "    'CAGR': '{:.2%}', 'Vol (ann.)': '{:.2%}',\n"
+        "    'Sharpe': '{:.3f}', 'Max DD': '{:.2%}',\n"
+        "    'Final equity': '${:,.0f}',\n"
+        "})"
     ),
     code("equity_curve(strategy_equity=strat.equity, benchmark_equity=bench.equity, title='SMA(50, 200) on SPY — strategy vs buy-and-hold')"),
+    md(
+        "## Drawdown comparison\n\n"
+        "Despite the popular claim, the crossover strategy ends up with **nearly "
+        "the same max drawdown as buy-and-hold** for this asset and period. "
+        "It exits the 2020 COVID crash earlier than B&H but also misses the "
+        "recovery, washing out the protective benefit."
+    ),
+    code(
+        "underwater_drawdown(strategy_equity=strat.equity, benchmark_equity=bench.equity)"
+    ),
     md(
         "## Cost sensitivity\n\n"
         "How much does the result depend on the cost assumption? Re-run the same "
@@ -479,7 +513,11 @@ NB5 = notebook([
         "        'CAGR': cagr(r.equity),\n"
         "        'max_DD': max_drawdown(r.equity),\n"
         "    })\n"
-        "pd.DataFrame(rows).set_index('cost_bps_per_side')"
+        "sensitivity = pd.DataFrame(rows).set_index('cost_bps_per_side')\n"
+        "sensitivity.style.format({\n"
+        "    'round_trip_bps': '{:.0f}',\n"
+        "    'sharpe': '{:.3f}', 'CAGR': '{:.2%}', 'max_DD': '{:.2%}',\n"
+        "})"
     ),
     md("## Statistical comparison"),
     code(
