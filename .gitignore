@@ -35,6 +35,12 @@ results/
 .vscode/
 *.swp
 
+# Streamlit secrets — real secrets must never be committed
+.streamlit/secrets.toml
+
+# Local transcript / chat exports (date-prefixed .txt at repo root)
+/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-*.txt
+
 # Editor / assistant scratch
 CLAUDE.md
 .claude/

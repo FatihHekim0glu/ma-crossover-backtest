@@ -1,0 +1,25 @@
+# streamlit cloud config for ma-crossover-backtest
+
+[theme]
+# light theme paired with plotly default; primary tuned to complement #1f77b4 strategy line
+base = "light"
+primaryColor = "#ff7f0e"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f5f7fa"
+textColor = "#262730"
+font = "sans serif"
+
+[server]
+headless = true
+runOnSave = false
+maxUploadSize = 5
+
+[browser]
+gatherUsageStats = false
+
+[client]
+# hide tracebacks from users; server-side logs are the source of truth
+showErrorDetails = false
+
+[runner]
+magicEnabled = false

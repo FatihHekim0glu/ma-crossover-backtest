@@ -12,6 +12,7 @@ Run with::
 
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import asdict
 from datetime import date
@@ -32,7 +33,7 @@ from ma_backtester.config import (
     WalkForwardConfig,
 )
 from ma_backtester.costs import FixedBpsCost
-from ma_backtester.data import load_close
+from ma_backtester.data import DataQualityError, load_close
 from ma_backtester.data_snooping import (
     deflated_sharpe_ratio,
     effective_number_of_trials,
@@ -51,6 +52,8 @@ from ma_backtester.plotting import (
     underwater_drawdown,
 )
 from ma_backtester.walk_forward import run_walk_forward
+
+log = logging.getLogger(__name__)
 
 # --------------------------------------------------------------------------- #
 # Page config and theme
@@ -194,277 +197,298 @@ with st.sidebar:
 # --------------------------------------------------------------------------- #
 # Run live backtest (cheap — no button needed)
 # --------------------------------------------------------------------------- #
-strategy_cfg = StrategyConfig(fast_window=fast, slow_window=slow)
-cost_model = FixedBpsCost(CostConfig(per_side_bps=cost_bps))
+try:
+    strategy_cfg = StrategyConfig(fast_window=fast, slow_window=slow)
+    cost_model = FixedBpsCost(CostConfig(per_side_bps=cost_bps))
 
-close = cached_load_close(ticker, str(start_date), str(end_date))
-strat = run_backtest(close=close, strategy_config=strategy_cfg, cost_model=cost_model)
-bench = run_buy_and_hold(close=close, cost_model=cost_model)
+    close = cached_load_close(ticker, str(start_date), str(end_date))
+    strat = run_backtest(close=close, strategy_config=strategy_cfg, cost_model=cost_model)
+    bench = run_buy_and_hold(close=close, cost_model=cost_model)
 
-
-# --------------------------------------------------------------------------- #
-# Header
-# --------------------------------------------------------------------------- #
-st.title("Moving-Average Crossover Backtester")
-st.markdown(
-    f"**SMA({fast}, {slow})** on **{ticker}** from "
-    f"**{start_date}** to **{end_date}** with **{cost_bps} bps/side** transaction cost. "
-    f"All numbers update live as you move the sliders."
-)
-
-
-# --------------------------------------------------------------------------- #
-# Headline metrics
-# --------------------------------------------------------------------------- #
-def _metric_row(
-    label: str, fmt: str, strat_val: float, bench_val: float
-) -> tuple[str, str, str, str]:
-    return label, fmt.format(strat_val), fmt.format(bench_val), fmt.format(strat_val - bench_val)
-
-
-metrics_df = pd.DataFrame(
-    [
-        _metric_row("CAGR", "{:.2%}", cagr(strat.equity), cagr(bench.equity)),
-        _metric_row(
-            "Annual vol",
-            "{:.2%}",
-            annualised_volatility(strat.daily_returns),
-            annualised_volatility(bench.daily_returns),
-        ),
-        _metric_row(
-            "Sharpe", "{:.3f}", sharpe_ratio(strat.daily_returns), sharpe_ratio(bench.daily_returns)
-        ),
-        _metric_row(
-            "Sortino",
-            "{:.3f}",
-            sortino_ratio(strat.daily_returns),
-            sortino_ratio(bench.daily_returns),
-        ),
-        _metric_row(
-            "Max drawdown", "{:.2%}", max_drawdown(strat.equity), max_drawdown(bench.equity)
-        ),
-    ],
-    columns=["Metric", "Strategy", "Buy & Hold", "Δ (Strat − B&H)"],  # noqa: RUF001
-)
-
-st.subheader("Headline metrics")
-st.dataframe(metrics_df, use_container_width=True, hide_index=True)
-
-
-# --------------------------------------------------------------------------- #
-# Equity + drawdown
-# --------------------------------------------------------------------------- #
-left, right = st.columns(2)
-with left:
-    st.plotly_chart(
-        equity_curve(
-            strategy_equity=strat.equity,
-            benchmark_equity=bench.equity,
-            title="Equity curve (log scale)",
-        ),
-        use_container_width=True,
-    )
-with right:
-    st.plotly_chart(
-        underwater_drawdown(
-            strategy_equity=strat.equity,
-            benchmark_equity=bench.equity,
-        ),
-        use_container_width=True,
-    )
-
-
-# --------------------------------------------------------------------------- #
-# Statistical comparison
-# --------------------------------------------------------------------------- #
-st.subheader("Statistical comparison")
-st.caption(
-    "CAPM regression with Newey-West HAC standard errors (bandwidth via Andrews 1991), "
-    "information ratio, and Memmel-corrected Jobson-Korkie Sharpe-difference test."
-)
-
-cmp = compare_strategies(
-    strategy_returns=strat.daily_returns,
-    benchmark_returns=bench.daily_returns,
-)
-cmp_dict = asdict(cmp)
-c1, c2, c3, c4 = st.columns(4)
-c1.metric(
-    "Jensen's α (annual)",  # noqa: RUF001
-    f"{cmp.alpha_annual:.2%}",
-    help=f"t = {cmp.alpha_t_stat:.2f}, p = {cmp.alpha_p_value:.3f}",
-)
-c2.metric(
-    "β vs benchmark", f"{cmp.beta:.3f}", help="< 1 means strategy is in cash some of the time"
-)
-c3.metric("Information ratio", f"{cmp.information_ratio:.3f}", help=">0.5 good, >1.0 exceptional")
-c4.metric("Sharpe difference", f"{cmp.sharpe_diff:.3f}", help=f"p = {cmp.sharpe_diff_p_value:.3f}")
-
-if cmp.alpha_p_value > 0.05:
-    st.info(
-        f"**Alpha is NOT statistically distinguishable from zero** "
-        f"(p = {cmp.alpha_p_value:.3f}, HAC SEs, {cmp.hac_lags} lags). "
-        "This is the methodologically honest reading."
-    )
-
-with st.expander("Full comparison table"):
-    st.dataframe(pd.Series(cmp_dict).to_frame("value"), use_container_width=True)
-
-
-# --------------------------------------------------------------------------- #
-# Cost sensitivity
-# --------------------------------------------------------------------------- #
-st.subheader("Cost sensitivity")
-sensitivity_df = cached_cost_sensitivity(
-    ticker, str(start_date), str(end_date), fast, slow, tuple(DEFAULT_COST_BPS_GRID)
-)
-st.dataframe(
-    sensitivity_df.style.format(
-        {"Sharpe": "{:.3f}", "CAGR": "{:.2%}", "Max DD": "{:.2%}", "Round-trip (bps)": "{:.0f}"}
-    ),
-    use_container_width=True,
-)
-
-
-# --------------------------------------------------------------------------- #
-# Heavy analyses — gated behind buttons
-# --------------------------------------------------------------------------- #
-st.divider()
-tab_sweep, tab_wf = st.tabs(["Parameter sweep + DSR", "Walk-forward (the honest one)"])
-
-with tab_sweep:
+    # --------------------------------------------------------------------------- #
+    # Header
+    # --------------------------------------------------------------------------- #
+    st.title("Moving-Average Crossover Backtester")
     st.markdown(
-        "Sweep ~320 (fast, slow) combinations on the **in-sample** window and "
-        "apply the Deflated Sharpe Ratio (Bailey & López de Prado, 2014). "
-        "The heatmap is *diagnostic only* — see the caption on the chart."
+        f"**SMA({fast}, {slow})** on **{ticker}** from "
+        f"**{start_date}** to **{end_date}** with **{cost_bps} bps/side** transaction cost. "
+        f"All numbers update live as you move the sliders."
     )
-    if st.button("Run sweep", key="run_sweep"):
-        sharpes, matrix, best_key = cached_sweep(ticker, str(start_date), str(end_date), cost_bps)
-        best_fast, best_slow = map(int, best_key.split("_"))
-        st.success(
-            f"Best in-sample: SMA({best_fast}, {best_slow}) with Sharpe = {sharpes[best_key]:.3f}"
+
+    # --------------------------------------------------------------------------- #
+    # Headline metrics
+    # --------------------------------------------------------------------------- #
+    def _metric_row(
+        label: str, fmt: str, strat_val: float, bench_val: float
+    ) -> tuple[str, str, str, str]:
+        return (
+            label,
+            fmt.format(strat_val),
+            fmt.format(bench_val),
+            fmt.format(strat_val - bench_val),
         )
 
-        grid_df = pd.DataFrame(
-            index=sorted(DEFAULT_SWEEP.fast_windows),
-            columns=sorted(DEFAULT_SWEEP.slow_windows),
-            dtype="float64",
-        )
-        for key, s in sharpes.items():
-            f_w, s_w = map(int, key.split("_"))
-            grid_df.loc[f_w, s_w] = s
-        st.plotly_chart(parameter_heatmap(sharpe_grid=grid_df), use_container_width=True)
-
-        n_eff = effective_number_of_trials(returns_matrix=matrix)
-        best_returns = matrix[best_key]
-        dsr = deflated_sharpe_ratio(
-            daily_returns=best_returns,
-            n_trials=len(sharpes),
-            n_effective_trials=n_eff,
-        )
-
-        dc1, dc2, dc3 = st.columns(3)
-        dc1.metric("Observed Sharpe", f"{dsr.observed_sharpe:.3f}")
-        dc2.metric("Expected max under null", f"{dsr.expected_max_sharpe_under_null:.3f}")
-        dc3.metric(
-            "Deflated Sharpe (probability)",
-            f"{dsr.deflated_sharpe:.3f}",
-            delta="reject null" if dsr.can_reject_null else "cannot reject null",
-        )
-        st.caption(
-            f"Effective trials: {dsr.n_effective_trials} of {dsr.n_trials} (PCA, 95% var). "
-            f"Return distribution skew = {dsr.skew:.2f}, kurtosis = {dsr.kurtosis:.2f}."
-        )
-
-with tab_wf:
-    st.markdown(
-        "Anchored expanding-window walk-forward: train on growing history, "
-        "evaluate on a non-overlapping out-of-sample slice, re-optimise each year. "
-        "This takes ~30s for one ticker."
+    metrics_df = pd.DataFrame(
+        [
+            _metric_row("CAGR", "{:.2%}", cagr(strat.equity), cagr(bench.equity)),
+            _metric_row(
+                "Annual vol",
+                "{:.2%}",
+                annualised_volatility(strat.daily_returns),
+                annualised_volatility(bench.daily_returns),
+            ),
+            _metric_row(
+                "Sharpe",
+                "{:.3f}",
+                sharpe_ratio(strat.daily_returns),
+                sharpe_ratio(bench.daily_returns),
+            ),
+            _metric_row(
+                "Sortino",
+                "{:.3f}",
+                sortino_ratio(strat.daily_returns),
+                sortino_ratio(bench.daily_returns),
+            ),
+            _metric_row(
+                "Max drawdown", "{:.2%}", max_drawdown(strat.equity), max_drawdown(bench.equity)
+            ),
+        ],
+        columns=["Metric", "Strategy", "Buy & Hold", "Δ (Strat − B&H)"],  # noqa: RUF001
     )
-    wf_train = st.slider("Train window (years)", min_value=3, max_value=10, value=5)
-    wf_test = st.slider("OOS window (years)", min_value=1, max_value=3, value=1)
-    if st.button("Run walk-forward", key="run_wf"):
-        wf = cached_walk_forward(
-            ticker, str(start_date), str(end_date), cost_bps, wf_train, wf_test
-        )
-        folds_df = pd.DataFrame(wf["folds"])
-        st.dataframe(
-            folds_df.style.format(
-                {
-                    "IS_sharpe": "{:.3f}",
-                    "OOS_sharpe": "{:.3f}",
-                    "OOS_return": "{:.2%}",
-                }
+
+    st.subheader("Headline metrics")
+    st.dataframe(metrics_df, use_container_width=True, hide_index=True)
+
+    # --------------------------------------------------------------------------- #
+    # Equity + drawdown
+    # --------------------------------------------------------------------------- #
+    left, right = st.columns(2)
+    with left:
+        st.plotly_chart(
+            equity_curve(
+                strategy_equity=strat.equity,
+                benchmark_equity=bench.equity,
+                title="Equity curve (log scale)",
             ),
             use_container_width=True,
-            hide_index=True,
+        )
+    with right:
+        st.plotly_chart(
+            underwater_drawdown(
+                strategy_equity=strat.equity,
+                benchmark_equity=bench.equity,
+            ),
+            use_container_width=True,
         )
 
-        # In-sample vs out-of-sample Sharpe scatter — the diagnostic chart.
-        fig = go.Figure()
-        fig.add_scatter(
-            x=folds_df["IS_sharpe"],
-            y=folds_df["OOS_sharpe"],
-            mode="markers+text",
-            text=folds_df["fold"].astype(str),
-            textposition="top right",
-            marker={"size": 12},
-        )
-        lim = float(
-            max(folds_df["IS_sharpe"].abs().max(), folds_df["OOS_sharpe"].abs().max()) + 0.3
-        )
-        fig.add_shape(type="line", x0=-lim, y0=-lim, x1=lim, y1=lim, line={"dash": "dash"})
-        fig.add_annotation(
-            x=lim * 0.7,
-            y=lim * 0.7,
-            text="points near y=x → IS Sharpe predicts OOS Sharpe<br>(strategy generalises)",
-            showarrow=False,
-            font={"size": 10, "color": "rgba(0,0,0,0.55)"},
-            align="center",
-        )
-        fig.update_layout(
-            title="In-sample vs out-of-sample Sharpe (one point per fold)",
-            xaxis_title="In-sample Sharpe",
-            yaxis_title="OOS Sharpe",
-            height=450,
-        )
-        st.plotly_chart(fig, use_container_width=True)
+    # --------------------------------------------------------------------------- #
+    # Statistical comparison
+    # --------------------------------------------------------------------------- #
+    st.subheader("Statistical comparison")
+    st.caption(
+        "CAPM regression with Newey-West HAC standard errors (bandwidth via Andrews 1991), "
+        "information ratio, and Memmel-corrected Jobson-Korkie Sharpe-difference test."
+    )
 
-        if wf["returns"] is not None and len(wf["returns"]) >= 30:
-            dsr_oos = deflated_sharpe_ratio(
-                daily_returns=wf["returns"],
-                n_trials=DEFAULT_SWEEP.size,
+    cmp = compare_strategies(
+        strategy_returns=strat.daily_returns,
+        benchmark_returns=bench.daily_returns,
+    )
+    cmp_dict = asdict(cmp)
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric(
+        "Jensen's α (annual)",  # noqa: RUF001
+        f"{cmp.alpha_annual:.2%}",
+        help=f"t = {cmp.alpha_t_stat:.2f}, p = {cmp.alpha_p_value:.3f}",
+    )
+    c2.metric(
+        "β vs benchmark", f"{cmp.beta:.3f}", help="< 1 means strategy is in cash some of the time"
+    )
+    c3.metric(
+        "Information ratio", f"{cmp.information_ratio:.3f}", help=">0.5 good, >1.0 exceptional"
+    )
+    c4.metric(
+        "Sharpe difference", f"{cmp.sharpe_diff:.3f}", help=f"p = {cmp.sharpe_diff_p_value:.3f}"
+    )
+
+    if cmp.alpha_p_value > 0.05:
+        st.info(
+            f"**Alpha is NOT statistically distinguishable from zero** "
+            f"(p = {cmp.alpha_p_value:.3f}, HAC SEs, {cmp.hac_lags} lags). "
+            "This is the methodologically honest reading."
+        )
+
+    with st.expander("Full comparison table"):
+        st.dataframe(pd.Series(cmp_dict).to_frame("value"), use_container_width=True)
+
+    # --------------------------------------------------------------------------- #
+    # Cost sensitivity
+    # --------------------------------------------------------------------------- #
+    st.subheader("Cost sensitivity")
+    sensitivity_df = cached_cost_sensitivity(
+        ticker, str(start_date), str(end_date), fast, slow, tuple(DEFAULT_COST_BPS_GRID)
+    )
+    st.dataframe(
+        sensitivity_df.style.format(
+            {"Sharpe": "{:.3f}", "CAGR": "{:.2%}", "Max DD": "{:.2%}", "Round-trip (bps)": "{:.0f}"}
+        ),
+        use_container_width=True,
+    )
+
+    # --------------------------------------------------------------------------- #
+    # Heavy analyses — gated behind buttons
+    # --------------------------------------------------------------------------- #
+    st.divider()
+    tab_sweep, tab_wf = st.tabs(["Parameter sweep + DSR", "Walk-forward (the honest one)"])
+
+    with tab_sweep:
+        st.markdown(
+            "Sweep ~320 (fast, slow) combinations on the **in-sample** window and "
+            "apply the Deflated Sharpe Ratio (Bailey & López de Prado, 2014). "
+            "The heatmap is *diagnostic only* — see the caption on the chart."
+        )
+        if st.button("Run sweep", key="run_sweep"):
+            sharpes, matrix, best_key = cached_sweep(
+                ticker, str(start_date), str(end_date), cost_bps
             )
-            wc1, wc2, wc3 = st.columns(3)
-            wc1.metric("Concatenated OOS Sharpe", f"{dsr_oos.observed_sharpe:.3f}")
-            wc2.metric("Expected max under null", f"{dsr_oos.expected_max_sharpe_under_null:.3f}")
-            wc3.metric(
-                "OOS Deflated Sharpe",
-                f"{dsr_oos.deflated_sharpe:.3f}",
-                delta="reject null" if dsr_oos.can_reject_null else "cannot reject null",
+            best_fast, best_slow = map(int, best_key.split("_"))
+            st.success(
+                f"Best in-sample: SMA({best_fast}, {best_slow}) "
+                f"with Sharpe = {sharpes[best_key]:.3f}"
             )
 
-        if wf["equity"] is not None:
-            bench_oos = bench.equity.loc[wf["equity"].index]
-            bench_oos = bench_oos / bench_oos.iloc[0] * float(wf["equity"].iloc[0])
-            st.plotly_chart(
-                equity_curve(
-                    strategy_equity=wf["equity"],
-                    benchmark_equity=bench_oos,
-                    title="Concatenated out-of-sample equity vs B&H",
+            grid_df = pd.DataFrame(
+                index=sorted(DEFAULT_SWEEP.fast_windows),
+                columns=sorted(DEFAULT_SWEEP.slow_windows),
+                dtype="float64",
+            )
+            for key, s in sharpes.items():
+                f_w, s_w = map(int, key.split("_"))
+                grid_df.loc[f_w, s_w] = s
+            st.plotly_chart(parameter_heatmap(sharpe_grid=grid_df), use_container_width=True)
+
+            n_eff = effective_number_of_trials(returns_matrix=matrix)
+            best_returns = matrix[best_key]
+            dsr = deflated_sharpe_ratio(
+                daily_returns=best_returns,
+                n_trials=len(sharpes),
+                n_effective_trials=n_eff,
+            )
+
+            dc1, dc2, dc3 = st.columns(3)
+            dc1.metric("Observed Sharpe", f"{dsr.observed_sharpe:.3f}")
+            dc2.metric("Expected max under null", f"{dsr.expected_max_sharpe_under_null:.3f}")
+            dc3.metric(
+                "Deflated Sharpe (probability)",
+                f"{dsr.deflated_sharpe:.3f}",
+                delta="reject null" if dsr.can_reject_null else "cannot reject null",
+            )
+            st.caption(
+                f"Effective trials: {dsr.n_effective_trials} of {dsr.n_trials} (PCA, 95% var). "
+                f"Return distribution skew = {dsr.skew:.2f}, kurtosis = {dsr.kurtosis:.2f}."
+            )
+
+    with tab_wf:
+        st.markdown(
+            "Anchored expanding-window walk-forward: train on growing history, "
+            "evaluate on a non-overlapping out-of-sample slice, re-optimise each year. "
+            "This takes ~30s for one ticker."
+        )
+        wf_train = st.slider("Train window (years)", min_value=3, max_value=10, value=5)
+        wf_test = st.slider("OOS window (years)", min_value=1, max_value=3, value=1)
+        if st.button("Run walk-forward", key="run_wf"):
+            wf = cached_walk_forward(
+                ticker, str(start_date), str(end_date), cost_bps, wf_train, wf_test
+            )
+            folds_df = pd.DataFrame(wf["folds"])
+            st.dataframe(
+                folds_df.style.format(
+                    {
+                        "IS_sharpe": "{:.3f}",
+                        "OOS_sharpe": "{:.3f}",
+                        "OOS_return": "{:.2%}",
+                    }
                 ),
                 use_container_width=True,
+                hide_index=True,
             )
 
+            # In-sample vs out-of-sample Sharpe scatter — the diagnostic chart.
+            fig = go.Figure()
+            fig.add_scatter(
+                x=folds_df["IS_sharpe"],
+                y=folds_df["OOS_sharpe"],
+                mode="markers+text",
+                text=folds_df["fold"].astype(str),
+                textposition="top right",
+                marker={"size": 12},
+            )
+            lim = float(
+                max(folds_df["IS_sharpe"].abs().max(), folds_df["OOS_sharpe"].abs().max()) + 0.3
+            )
+            fig.add_shape(type="line", x0=-lim, y0=-lim, x1=lim, y1=lim, line={"dash": "dash"})
+            fig.add_annotation(
+                x=lim * 0.7,
+                y=lim * 0.7,
+                text="points near y=x → IS Sharpe predicts OOS Sharpe<br>(strategy generalises)",
+                showarrow=False,
+                font={"size": 10, "color": "rgba(0,0,0,0.55)"},
+                align="center",
+            )
+            fig.update_layout(
+                title="In-sample vs out-of-sample Sharpe (one point per fold)",
+                xaxis_title="In-sample Sharpe",
+                yaxis_title="OOS Sharpe",
+                height=450,
+            )
+            st.plotly_chart(fig, use_container_width=True)
 
-# --------------------------------------------------------------------------- #
-# Footer
-# --------------------------------------------------------------------------- #
-st.divider()
-st.caption(
-    "Engine: vectorised pandas with the `position = signal.shift(1)` discipline, "
-    "property-tested for no-lookahead. "
-    "Statistical machinery: Newey-West HAC standard errors, Memmel-corrected JK Sharpe-diff, "
-    "Deflated Sharpe Ratio. See README for references."
-)
+            if wf["returns"] is not None and len(wf["returns"]) >= 30:
+                dsr_oos = deflated_sharpe_ratio(
+                    daily_returns=wf["returns"],
+                    n_trials=DEFAULT_SWEEP.size,
+                )
+                wc1, wc2, wc3 = st.columns(3)
+                wc1.metric("Concatenated OOS Sharpe", f"{dsr_oos.observed_sharpe:.3f}")
+                wc2.metric(
+                    "Expected max under null", f"{dsr_oos.expected_max_sharpe_under_null:.3f}"
+                )
+                wc3.metric(
+                    "OOS Deflated Sharpe",
+                    f"{dsr_oos.deflated_sharpe:.3f}",
+                    delta="reject null" if dsr_oos.can_reject_null else "cannot reject null",
+                )
+
+            if wf["equity"] is not None:
+                bench_oos = bench.equity.loc[wf["equity"].index]
+                bench_oos = bench_oos / bench_oos.iloc[0] * float(wf["equity"].iloc[0])
+                st.plotly_chart(
+                    equity_curve(
+                        strategy_equity=wf["equity"],
+                        benchmark_equity=bench_oos,
+                        title="Concatenated out-of-sample equity vs B&H",
+                    ),
+                    use_container_width=True,
+                )
+
+    # --------------------------------------------------------------------------- #
+    # Footer
+    # --------------------------------------------------------------------------- #
+    st.divider()
+    st.caption(
+        "Engine: vectorised pandas with the `position = signal.shift(1)` discipline, "
+        "property-tested for no-lookahead. "
+        "Statistical machinery: Newey-West HAC standard errors, Memmel-corrected JK Sharpe-diff, "
+        "Deflated Sharpe Ratio. See README for references."
+    )
+except DataQualityError as e:
+    log.warning("data quality error: %s", e)
+    st.error(f"Couldn't load {ticker}: {e}")
+    st.stop()
+except Exception:
+    log.exception("unexpected error in dashboard")
+    st.error(
+        "Something went wrong loading data for this ticker/date range. "
+        "Please try a different combination, or see the logs for details."
+    )
+    st.stop()

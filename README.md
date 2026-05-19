@@ -33,6 +33,16 @@ A from-scratch vectorised Python backtester for the moving-average crossover str
 
 Run `uv run ma-backtester run --ticker SPY --fast 50 --slow 200 --start 2010-01-01 --end 2024-12-31` to reproduce.
 
+## Live demo
+
+A Streamlit Cloud demo of the dashboard is available.
+
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](PLACEHOLDER_URL)
+
+The hosted version loads SPY 2010-2024 by default; use the sidebar to switch tickers (SPY, QQQ, IWM, GLD, TLT) and parameters.
+
+![dashboard screenshot](docs/assets/dashboard.png)
+
 ## Why this is the right answer
 
 This is not a strategy that works; it is a study in *how to evaluate one rigorously*.
@@ -79,7 +89,7 @@ uv run ma-backtester walk-forward --ticker SPY --start 2005-01-01 --end 2024-12-
 uv run jupyter lab notebooks/
 
 # Test suite + type check
-uv run pytest -q              # 58 tests, ~2.5s
+uv run pytest -q              # ~2.5s
 uv run pyright src tests      # 0 errors
 uv run ruff check . && uv run ruff format --check .
 ```
@@ -122,6 +132,24 @@ notebooks/           01 basic backtest -> 05 final report
 - Hurst, B., Ooi, Y. H., & Pedersen, L. H. (2017). A Century of Evidence on Trend-Following Investing. *Journal of Portfolio Management*, 44(1), 15-29.
 - Newey, W., & West, K. (1987). A Simple, Positive Semi-Definite, Heteroskedasticity and Autocorrelation Consistent Covariance Matrix. *Econometrica*, 55(3), 703-708.
 - Andrews, D. W. K. (1991). Heteroskedasticity and Autocorrelation Consistent Covariance Matrix Estimation. *Econometrica*, 59(3), 817-858.
+
+## Deploying to Streamlit Cloud
+
+1. Fork this repository.
+2. Sign in at [share.streamlit.io](https://share.streamlit.io).
+3. Click "New app".
+4. Select your fork and `streamlit_app.py` as the entry point.
+5. Deploy.
+
+`requirements.txt` is auto-generated from `uv.lock`; regenerate it with:
+
+```bash
+uv export --format requirements-txt --no-dev --no-emit-project --extra app --output-file requirements.txt
+```
+
+`--extra app` includes `streamlit` (which lives under `[project.optional-dependencies].app` in `pyproject.toml`).
+
+A secrets template is provided in `.streamlit/secrets.toml.example`.
 
 ## License
 

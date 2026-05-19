@@ -154,6 +154,19 @@ def _normalise_yf_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df.astype("float64")
 
 
+def _normalise_stooq_columns(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.rename(columns=str.title)
+    cols = ["Open", "High", "Low", "Close", "Volume"]
+    missing = [c for c in cols if c not in df.columns]
+    if missing:
+        raise DataQualityError(f"missing columns from Stooq: {missing}")
+    df = df[cols].copy()
+    if isinstance(df.index, pd.DatetimeIndex) and df.index.tz is not None:
+        df.index = df.index.tz_localize(None)
+    df.index.name = "Date"
+    return df.astype("float64")
+
+
 def validate(df: pd.DataFrame, ticker: str) -> DataQualityReport:
     """Run sanity checks. Raises ``DataQualityError`` on hard failures."""
     if df.empty:
@@ -236,7 +249,16 @@ def load_ohlcv(
             cache_file.unlink(missing_ok=True)
             cache_hit = False
     if not cache_hit:
-        df = _yfinance_download(ticker, start, end)
+        source = "yfinance"
+        try:
+            df = _yfinance_download(ticker, start, end)
+        except Exception as yf_exc:
+            _log.warning("yfinance failed for %s, falling back to Stooq: %s", ticker, yf_exc)
+            try:
+                df = _normalise_stooq_columns(load_from_stooq(ticker))
+            except Exception as stooq_exc:
+                raise yf_exc from stooq_exc
+            source = "stooq"
         tmp = cache_file.with_suffix(".parquet.tmp")
         df.to_parquet(tmp)
         os.replace(tmp, cache_file)  # atomic on POSIX and Windows
@@ -245,7 +267,7 @@ def load_ohlcv(
             "first_date": str(df.index[0].date()),
             "last_date": str(df.index[-1].date()),
             "n_rows": len(df),
-            "source": "yfinance",
+            "source": source,
         }
         _write_meta(cache_dir, meta)
 
