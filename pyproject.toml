@@ -83,7 +83,10 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["ANN", "S101"]
-"notebooks/**" = ["E402", "ANN"]
+# C408: plotly's idiomatic `dict(...)` kwarg style is widespread in notebooks.
+# RUF001/RUF002: Unicode math glyphs (×, μ, σ) are intentional in display text.
+# E402, ANN: not enforced inside narrative-driven notebooks.
+"notebooks/**" = ["E402", "ANN", "C408", "RUF001", "RUF002"]
 
 [tool.ruff.format]
 quote-style = "double"

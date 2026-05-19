@@ -12,17 +12,28 @@ repos:
       - id: mixed-line-ending
         args: ["--fix=lf"]
 
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.7.4
+  # Ruff is invoked via `uv run` so the version always matches uv.lock.
+  # Pinning a separate version in this file would cause drift: older
+  # pre-commit-ruff still enforces deprecated rules (ANN101, PD901) that
+  # the project's ruff has retired, producing CI-only false positives.
+  - repo: local
     hooks:
       - id: ruff
-        args: [--fix]
+        name: ruff (via uv)
+        entry: uv run ruff check --fix --exit-non-zero-on-fix
+        language: system
+        types_or: [python, pyi, jupyter]
+        pass_filenames: true
       - id: ruff-format
+        name: ruff-format (via uv)
+        entry: uv run ruff format
+        language: system
+        types_or: [python, pyi, jupyter]
+        pass_filenames: true
 
-  - repo: https://github.com/RobertCraigie/pyright-python
-    rev: v1.1.389
-    hooks:
-      - id: pyright
-        additional_dependencies:
-          - pandas-stubs
-          - types-PyYAML
+# Type checking deliberately lives outside pre-commit. The RobertCraigie/pyright
+# hook runs pyright in an isolated venv and ships only `additional_dependencies`,
+# which makes runtime imports (pandas, pytest, hypothesis, statsmodels, scipy)
+# unresolvable — yielding ~50 false-positive `reportMissingImports` errors.
+# CI runs `uv run pyright src tests` in the project venv as a dedicated step,
+# which is the authoritative type check. Run it locally the same way.
