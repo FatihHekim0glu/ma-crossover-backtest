@@ -9,7 +9,12 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 import pytest
+from hypothesis import settings as _hyp_settings
 from hypothesis import strategies as st
+
+# Deterministic Hypothesis: same seed every run so CI failures are reproducible.
+_hyp_settings.register_profile("ci", derandomize=True, database=None)
+_hyp_settings.load_profile("ci")
 
 _DEFAULT_START = "2010-01-03"
 

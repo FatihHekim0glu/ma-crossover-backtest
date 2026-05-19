@@ -114,6 +114,9 @@ def _select_best(
 
     top_sharpe = max(valid.values())
     tied = [cfg for cfg, s in valid.items() if s == top_sharpe]
+    # Deterministic order regardless of dict insertion order or future
+    # parallelisation that reassembles results out of order.
+    tied.sort(key=lambda c: (c.fast_window, c.slow_window))
     if len(tied) == 1 or not use_neighbourhood:
         return tied[0]
 
@@ -136,6 +139,36 @@ def run_walk_forward(
     cost_model: CostModel | None = None,
     initial_cash: float = 100_000.0,
 ) -> WalkForwardResult:
+    """Run anchored expanding-window walk-forward on a single asset.
+
+    For each fold: sweep ``sweep.grid()`` on the train slice, select the
+    best (fast, slow) by in-sample Sharpe with neighbourhood tie-break,
+    then evaluate on the next OOS slice without re-tuning. Equity
+    compounds across folds — each fold starts with the previous fold's
+    terminal equity. Folds whose in-sample sweep is degenerate (all NaN)
+    are skipped with a warning rather than aborting the run.
+
+    Parameters
+    ----------
+    close : pd.Series
+        Adjusted close, indexed by a DatetimeIndex.
+    ticker : str
+        Label only — used in the returned ``WalkForwardResult.ticker``.
+    sweep : SweepConfig
+        Parameter grid to optimise over each train window.
+    wf_config : WalkForwardConfig | None
+        Train/test/step sizes. Default: 5y/1y/1y anchored.
+    cost_model : CostModel | None
+        Per-bar cost model. Default: zero-cost.
+    initial_cash : float
+        Starting capital for fold 0.
+
+    Returns
+    -------
+    WalkForwardResult
+        Per-fold records, the concatenated OOS equity curve, and the
+        concatenated OOS daily returns.
+    """
     wf_config = wf_config or WalkForwardConfig()
     cost_model = cost_model or zero_cost_model()
     grid = sweep.grid()

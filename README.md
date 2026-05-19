@@ -1,5 +1,10 @@
 # ma-crossover-backtest
 
+![python](https://img.shields.io/badge/python-3.12%2B-blue)
+![license](https://img.shields.io/badge/license-MIT-green)
+![tests](https://img.shields.io/badge/tests-67%20passing-brightgreen)
+![types](https://img.shields.io/badge/pyright-clean-brightgreen)
+
 A from-scratch vectorised Python backtester for the moving-average crossover strategy on US-equity ETFs, with property-tested no-lookahead invariants, Newey-West HAC alpha, and Deflated Sharpe Ratio adjustment for data-snooping.
 
 > **Headline (SPY, 2010-2024, 5 bps per-side cost):** SMA(50, 200) returns **9.5% CAGR** versus **13.7%** for buy-and-hold. The strategy's Jensen's alpha is +0.84% / year with **p = 0.69** under Newey-West HAC standard errors — we cannot reject the null of zero true skill. Max drawdown is **identical to B&H (-33.7%)**, contradicting the common claim that crossover rules reduce drawdowns. This is the project's honest, expected conclusion; see the references below for the academic consensus.

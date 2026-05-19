@@ -73,6 +73,27 @@ def test_dsr_short_series_rejected() -> None:
         deflated_sharpe_ratio(daily_returns=rets, n_trials=10)
 
 
+def test_expected_max_sharpe_matches_hand_calculation() -> None:
+    """Closed-form lock on the Bailey-LdP extreme-value approximation.
+
+    For N=10 trials with daily Sharpe variance = 1, the formula gives
+    (1 - gamma) * Phi^-1(0.9) + gamma * Phi^-1(1 - 1/(10e))
+      = 0.4228 * 1.2816 + 0.5772 * 1.7894
+      = 1.5746...
+    """
+    from ma_backtester.data_snooping import _expected_max_sharpe
+
+    assert _expected_max_sharpe(n_trials=10, sharpe_variance_daily=1.0) == pytest.approx(
+        1.5746, abs=1e-3
+    )
+
+
+def test_expected_max_sharpe_zero_for_single_trial() -> None:
+    from ma_backtester.data_snooping import _expected_max_sharpe
+
+    assert _expected_max_sharpe(n_trials=1, sharpe_variance_daily=1.0) == 0.0
+
+
 def test_dsr_raises_on_zero_volatility() -> None:
     rets = pd.Series([0.0] * 100, index=_bdays(100))
     with pytest.raises(ValueError, match="zero return-volatility"):

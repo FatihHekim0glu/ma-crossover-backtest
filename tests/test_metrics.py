@@ -92,6 +92,26 @@ def test_annualised_volatility_known() -> None:
     assert annualised_volatility(daily) == pytest.approx(expected)
 
 
+def test_sharpe_annualization_factor_is_sqrt_252() -> None:
+    """Closed-form lock: catches accidental ``* 252`` instead of ``* sqrt(252)``."""
+    rng = np.random.default_rng(123)
+    rets = pd.Series(rng.normal(0.0008, 0.012, 5000))
+    mu = float(rets.mean())
+    sigma = float(rets.std(ddof=1))
+    expected = mu / sigma * math.sqrt(252)
+    assert sharpe_ratio(rets) == pytest.approx(expected, rel=1e-12)
+
+
+def test_sortino_annualization_factor_is_sqrt_252() -> None:
+    rng = np.random.default_rng(456)
+    rets = pd.Series(rng.normal(0.0008, 0.012, 5000))
+    excess = rets
+    downside = np.minimum(excess, 0.0)
+    dd = math.sqrt(float(np.mean(downside**2)))
+    expected = float(excess.mean()) / dd * math.sqrt(252)
+    assert sortino_ratio(rets) == pytest.approx(expected, rel=1e-12)
+
+
 def test_sortino_higher_than_sharpe_when_skewed_positive() -> None:
     """Right-skewed positive-mean returns should make Sortino > Sharpe.
 

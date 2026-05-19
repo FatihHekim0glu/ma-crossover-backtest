@@ -23,16 +23,24 @@ _SQRT_252: float = math.sqrt(TRADING_DAYS_PER_YEAR)
 
 
 def total_return(equity: pd.Series) -> float:
+    """Total return from first to last bar. NaN if fewer than 2 bars."""
     if len(equity) < 2:
         return float("nan")
     return float(equity.iloc[-1] / equity.iloc[0] - 1.0)
 
 
 def cagr(equity: pd.Series, periods_per_year: int = TRADING_DAYS_PER_YEAR) -> float:
+    """Compound annual growth rate.
+
+    Returns NaN if the equity curve has fewer than two bars, or if the curve
+    is non-positive at any point (CAGR is undefined past zero).
+    """
     if len(equity) < 2 or equity.iloc[0] <= 0:
         return float("nan")
     n_periods = len(equity) - 1
     if n_periods < 1:
+        return float("nan")
+    if bool((equity <= 0).any()):
         return float("nan")
     growth = equity.iloc[-1] / equity.iloc[0]
     if growth <= 0:
@@ -41,12 +49,20 @@ def cagr(equity: pd.Series, periods_per_year: int = TRADING_DAYS_PER_YEAR) -> fl
 
 
 def annualised_volatility(daily_returns: pd.Series) -> float:
+    """Annualised sample standard deviation of daily returns (factor sqrt(252))."""
     if daily_returns.dropna().shape[0] < 2:
         return float("nan")
     return float(daily_returns.std(ddof=1) * _SQRT_252)
 
 
 def sharpe_ratio(daily_returns: pd.Series, risk_free_annual: float = 0.0) -> float:
+    """Annualised Sharpe ratio on daily simple returns.
+
+    Mean excess return divided by sample standard deviation, scaled by
+    sqrt(252). Risk-free rate is converted from annual to daily via
+    ``(1+rf)^(1/252) - 1``. Returns NaN for fewer than 2 observations or
+    zero volatility.
+    """
     r = daily_returns.dropna()
     if r.shape[0] < 2:
         return float("nan")
@@ -59,6 +75,12 @@ def sharpe_ratio(daily_returns: pd.Series, risk_free_annual: float = 0.0) -> flo
 
 
 def sortino_ratio(daily_returns: pd.Series, mar_annual: float = 0.0) -> float:
+    """Annualised Sortino ratio (downside deviation in denominator).
+
+    Excess return divided by the root-mean-square of negative excess returns
+    (positives zeroed out, still in the average — Bacon Ch. 4). Annualised
+    by sqrt(252). NaN when downside deviation is effectively zero.
+    """
     r = daily_returns.dropna()
     if r.shape[0] < 2:
         return float("nan")
@@ -77,6 +99,7 @@ def _drawdown_series(equity: pd.Series) -> pd.Series:
 
 
 def max_drawdown(equity: pd.Series) -> float:
+    """Worst peak-to-trough fractional loss over the equity curve. NaN if <2 bars."""
     if len(equity) < 2:
         return float("nan")
     dd = _drawdown_series(equity)
@@ -84,6 +107,7 @@ def max_drawdown(equity: pd.Series) -> float:
 
 
 def average_drawdown(equity: pd.Series) -> float:
+    """Average trough depth across all distinct drawdown episodes."""
     if len(equity) < 2:
         return float("nan")
     dd = _drawdown_series(equity)
@@ -96,6 +120,11 @@ def average_drawdown(equity: pd.Series) -> float:
 
 
 def max_drawdown_duration(equity: pd.Series) -> int:
+    """Length in bars of the longest contiguous underwater (dd<0) run.
+
+    A drawdown that is still in progress at the last bar is reported with
+    its observed (right-censored) length.
+    """
     if len(equity) < 2:
         return 0
     dd = _drawdown_series(equity)
@@ -108,6 +137,7 @@ def max_drawdown_duration(equity: pd.Series) -> int:
 
 
 def calmar_ratio(equity: pd.Series, periods_per_year: int = TRADING_DAYS_PER_YEAR) -> float:
+    """CAGR divided by absolute max drawdown. NaN when max DD is zero."""
     mdd = max_drawdown(equity)
     if mdd == 0 or math.isnan(mdd):
         return float("nan")
@@ -118,6 +148,12 @@ def calmar_ratio(equity: pd.Series, periods_per_year: int = TRADING_DAYS_PER_YEA
 
 
 def annualised_turnover(positions: pd.Series) -> float:
+    """Sum of absolute position changes divided by the elapsed years.
+
+    For a long/flat strategy this counts each entry and each exit as one
+    unit of turnover; round-trip turnover is therefore 2x the number of
+    completed trades per year.
+    """
     if len(positions) < 2:
         return 0.0
     turnover = positions.diff().abs().sum()
@@ -168,6 +204,7 @@ def compute_metrics_table(
     trades: pd.DataFrame,
     risk_free_annual: float = 0.0,
 ) -> MetricsTable:
+    """Bundle the standard performance metrics for one backtest result."""
     trade_stats = trade_statistics(trades)
     return MetricsTable(
         total_return=total_return(equity),

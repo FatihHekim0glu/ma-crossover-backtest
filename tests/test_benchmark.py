@@ -5,8 +5,10 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 import pytest
+from scipy.stats import norm as _norm
 
 from ma_backtester.benchmark import (
+    _andrews_hac_lags,
     capm_regression,
     compare_strategies,
     information_ratio,
@@ -79,6 +81,32 @@ def test_memmel_identical_series_pvalue_high() -> None:
     diff, p = memmel_sharpe_difference_test(returns_a=r, returns_b=r)
     assert abs(diff) < 1e-12
     assert p == pytest.approx(1.0, abs=1e-9)
+
+
+def test_memmel_matches_closed_form_independent_recomputation() -> None:
+    """Independently recompute theta from Memmel (2003) and verify the p-value."""
+    rng = np.random.default_rng(11)
+    n = 500
+    a = pd.Series(rng.normal(0.0008, 0.012, n), index=_bdays(n))
+    b = pd.Series(rng.normal(0.0004, 0.010, n), index=_bdays(n))
+    _, p = memmel_sharpe_difference_test(returns_a=a, returns_b=b)
+
+    sra = float(a.mean()) / float(a.std(ddof=1))
+    srb = float(b.mean()) / float(b.std(ddof=1))
+    rho = float(np.corrcoef(a, b)[0, 1])
+    theta = (2.0 * (1.0 - rho) + 0.5 * (sra**2 + srb**2) - 0.5 * sra * srb * (1.0 + rho**2)) / n
+    z = (sra - srb) / np.sqrt(theta)
+    expected = 2.0 * (1.0 - float(_norm.cdf(abs(z))))
+    assert p == pytest.approx(expected, rel=1e-10)
+
+
+def test_andrews_hac_lags_matches_formula() -> None:
+    """Lock the Andrews (1991) rule of thumb: floor(4 * (n/100)^(2/9))."""
+    import math as _math
+
+    for n in (50, 100, 500, 1000, 5000):
+        expected = max(1, _math.floor(4.0 * (n / 100.0) ** (2.0 / 9.0)))
+        assert _andrews_hac_lags(n) == expected
 
 
 def test_compare_strategies_smoke() -> None:

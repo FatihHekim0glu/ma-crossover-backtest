@@ -27,10 +27,25 @@ from ma_backtester.config import (
     WalkForwardConfig,
 )
 from ma_backtester.costs import FixedBpsCost
-from ma_backtester.data import load_close
+from ma_backtester.data import DataQualityError, load_close
 from ma_backtester.data_snooping import deflated_sharpe_ratio, effective_number_of_trials
 from ma_backtester.metrics import compute_metrics_table, sharpe_ratio
 from ma_backtester.walk_forward import run_walk_forward
+
+
+def _validate_date_range(start: str, end: str) -> None:
+    if pd.Timestamp(start) >= pd.Timestamp(end):
+        raise typer.BadParameter(f"--start ({start}) must be strictly before --end ({end})")
+
+
+def _validate_ticker(ticker: str) -> str:
+    cleaned = ticker.strip().upper()
+    if not cleaned:
+        raise typer.BadParameter("--ticker must be a non-empty string")
+    if any(c in cleaned for c in " /\\"):
+        raise typer.BadParameter(f"--ticker '{cleaned}' contains invalid characters")
+    return cleaned
+
 
 app = typer.Typer(
     add_completion=False,
@@ -67,8 +82,14 @@ def run(
     initial_cash: float = typer.Option(100_000.0, "--cash"),
 ) -> None:
     """Single backtest with side-by-side comparison vs buy-and-hold."""
+    ticker = _validate_ticker(ticker)
+    _validate_date_range(start, end)
     console.print(f"[bold]Loading[/bold] {ticker} {start} -> {end}")
-    close = load_close(ticker, start=start, end=end)
+    try:
+        close = load_close(ticker, start=start, end=end)
+    except DataQualityError as exc:
+        typer.secho(f"Error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
 
     strategy = StrategyConfig(fast_window=fast, slow_window=slow)
     cost_model = FixedBpsCost(CostConfig(per_side_bps=cost_bps))
@@ -113,8 +134,14 @@ def sweep(
     output_dir: Path = typer.Option(Path("results"), "--output-dir"),
 ) -> None:
     """Run the default 20x20 grid and report best in-sample + DSR."""
+    ticker = _validate_ticker(ticker)
+    _validate_date_range(start, end)
     output_dir.mkdir(parents=True, exist_ok=True)
-    close = load_close(ticker, start=start, end=end)
+    try:
+        close = load_close(ticker, start=start, end=end)
+    except DataQualityError as exc:
+        typer.secho(f"Error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
     cost_model = FixedBpsCost(CostConfig(per_side_bps=cost_bps))
 
     grid = DEFAULT_SWEEP.grid()
@@ -154,7 +181,13 @@ def walk_forward(
     test_years: int = typer.Option(1, "--test-years"),
 ) -> None:
     """Anchored walk-forward, then DSR over the concatenated OOS series."""
-    close = load_close(ticker, start=start, end=end)
+    ticker = _validate_ticker(ticker)
+    _validate_date_range(start, end)
+    try:
+        close = load_close(ticker, start=start, end=end)
+    except DataQualityError as exc:
+        typer.secho(f"Error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
     cost_model = FixedBpsCost(CostConfig(per_side_bps=cost_bps))
     wf_config = WalkForwardConfig(train_years=train_years, test_years=test_years)
 

@@ -33,6 +33,12 @@ class CostConfig:
 
     per_side_bps: float = 5.0
 
+    def __post_init__(self) -> None:
+        if self.per_side_bps < 0:
+            raise ValueError(f"per_side_bps must be >= 0, got {self.per_side_bps}")
+        if self.per_side_bps > 1000:
+            raise ValueError(f"per_side_bps={self.per_side_bps} looks wrong (units are bps not %)")
+
     @property
     def round_trip_bps(self) -> float:
         return 2.0 * self.per_side_bps
@@ -54,6 +60,14 @@ class RunConfig:
     initial_cash: float = 100_000.0
     risk_free_annual: float = 0.0
 
+    def __post_init__(self) -> None:
+        if not self.ticker.strip():
+            raise ValueError("ticker must be a non-empty string")
+        if self.end <= self.start:
+            raise ValueError(f"end ({self.end}) must be after start ({self.start})")
+        if self.initial_cash <= 0:
+            raise ValueError(f"initial_cash must be > 0, got {self.initial_cash}")
+
 
 @dataclass(frozen=True, slots=True)
 class SweepConfig:
@@ -61,6 +75,15 @@ class SweepConfig:
 
     fast_windows: tuple[int, ...]
     slow_windows: tuple[int, ...]
+
+    def __post_init__(self) -> None:
+        if not self.fast_windows or not self.slow_windows:
+            raise ValueError("fast_windows and slow_windows must each be non-empty")
+        if not any(f < s for f in self.fast_windows for s in self.slow_windows):
+            raise ValueError(
+                "SweepConfig produces an empty grid: no fast<slow pair exists "
+                f"between fast_windows={self.fast_windows} and slow_windows={self.slow_windows}"
+            )
 
     def grid(self) -> list[StrategyConfig]:
         return [

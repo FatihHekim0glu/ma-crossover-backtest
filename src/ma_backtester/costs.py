@@ -37,10 +37,14 @@ class FixedBpsCost:
     def cost_series(self, positions: pd.Series) -> pd.Series:
         """Per-bar cost as a fraction of equity.
 
-        The first bar's cost reflects opening the initial position from zero.
+        The first bar's cost reflects opening the initial position from
+        cash. NaN entries in ``positions`` are treated as flat (zero), so
+        a raw un-shifted signal passed in by mistake cannot silently
+        poison the downstream equity curve.
         """
-        turnover = positions.diff().abs()
-        turnover.iloc[0] = abs(positions.iloc[0])
+        clean = positions.fillna(0.0)
+        turnover = clean.diff().abs()
+        turnover.iloc[0] = abs(clean.iloc[0])
         result: pd.Series = turnover * self._config.per_side_fraction
         result.name = "cost"
         return result

@@ -51,6 +51,33 @@ def test_select_best_raises_when_all_nan() -> None:
         _select_best(nan_map, sweep, use_neighbourhood=True)
 
 
+def test_select_best_picks_max_not_min() -> None:
+    """Mutation guard: if someone swaps max() for min(), this catches it."""
+    sweep = SweepConfig(fast_windows=(5, 10), slow_windows=(20, 50))
+    sharpes = {
+        StrategyConfig(fast_window=5, slow_window=20): -1.0,
+        StrategyConfig(fast_window=5, slow_window=50): 2.5,  # the winner
+        StrategyConfig(fast_window=10, slow_window=20): 0.5,
+        StrategyConfig(fast_window=10, slow_window=50): 1.2,
+    }
+    chosen = _select_best(sharpes, sweep, use_neighbourhood=False)
+    assert (chosen.fast_window, chosen.slow_window) == (5, 50)
+
+
+def test_select_best_deterministic_tie_break() -> None:
+    """When multiple configs tie on Sharpe, sort lexicographically."""
+    sweep = SweepConfig(fast_windows=(5, 10), slow_windows=(20, 50))
+    sharpes = {
+        StrategyConfig(fast_window=10, slow_window=50): 1.0,
+        StrategyConfig(fast_window=5, slow_window=20): 1.0,
+        StrategyConfig(fast_window=5, slow_window=50): 1.0,
+        StrategyConfig(fast_window=10, slow_window=20): 1.0,
+    }
+    chosen = _select_best(sharpes, sweep, use_neighbourhood=False)
+    # Lowest (fast, slow) wins the tie
+    assert (chosen.fast_window, chosen.slow_window) == (5, 20)
+
+
 def test_walk_forward_smoke() -> None:
     prices = make_gbm_series(seed=1, n=252 * 8)
     tiny_sweep = SweepConfig(fast_windows=(10, 20), slow_windows=(50, 100))

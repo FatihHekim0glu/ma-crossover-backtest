@@ -24,6 +24,28 @@ def test_zero_cost_model_yields_zero_drag() -> None:
     assert (cost == 0.0).all()
 
 
+def test_cost_series_treats_nan_first_position_as_zero() -> None:
+    """A raw un-shifted signal could start with NaN; the entry cost must
+    not poison the downstream equity curve."""
+    cm = FixedBpsCost(CostConfig(per_side_bps=5.0))
+    pos = pd.Series([float("nan"), 1.0, 1.0, 0.0], index=pd.bdate_range("2020-01-01", periods=4))
+    cost = cm.cost_series(pos)
+    # cost.iloc[0] should be 0.0 (NaN start treated as zero); subsequent
+    # bars should be finite.
+    assert cost.iloc[0] == 0.0
+    assert not cost.iloc[1:].isna().any()
+
+
+def test_cost_config_rejects_negative_bps() -> None:
+    with pytest.raises(ValueError, match="per_side_bps must be >= 0"):
+        CostConfig(per_side_bps=-1.0)
+
+
+def test_cost_config_rejects_absurd_bps() -> None:
+    with pytest.raises(ValueError, match="looks wrong"):
+        CostConfig(per_side_bps=5000.0)
+
+
 def test_fixed_bps_cost_charges_on_turnover() -> None:
     cm = FixedBpsCost(CostConfig(per_side_bps=5.0))
     pos = _positions([0, 1, 1, 0, 1, 0])
