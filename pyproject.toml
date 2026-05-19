@@ -1,0 +1,146 @@
+[project]
+name = "ma-backtester"
+version = "0.1.0"
+description = "From-scratch vectorised backtester for moving-average crossover strategies, with honest evaluation."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "Fatih Hekimoglu" }]
+
+dependencies = [
+    "numpy>=2.0",
+    "pandas>=2.2",
+    "scipy>=1.13",
+    "statsmodels>=0.14",
+    "pyarrow>=17.0",
+    "yfinance>=0.2.50",
+    "plotly>=5.24",
+    "typer>=0.12",
+    "rich>=13.7",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+notebooks = [
+    "jupyter>=1.0",
+    "ipykernel>=6.29",
+    "nbformat>=5.10",
+    "kaleido>=0.2",
+]
+app = [
+    "streamlit>=1.39",
+]
+
+[project.scripts]
+ma-backtester = "ma_backtester.cli:app"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=5.0",
+    "hypothesis>=6.112",
+    "ruff>=0.7",
+    "pyright>=1.1.380",
+    "pre-commit>=3.8",
+    "freezegun>=1.5",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ma_backtester"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",   # pycodestyle + pyflakes
+    "I",             # isort
+    "B",             # flake8-bugbear
+    "UP",            # pyupgrade
+    "N",             # pep8-naming
+    "SIM",           # flake8-simplify
+    "RUF",           # ruff-specific
+    "PD",            # pandas-vet
+    "NPY",           # numpy-specific
+    "ANN",           # flake8-annotations
+    "PT",            # pytest style
+    "TID",           # tidy imports
+    "C4",            # comprehensions
+    "PIE",           # misc lints
+]
+ignore = [
+    "ANN401",   # allow Any in **kwargs occasionally
+    "E501",     # line length handled by formatter
+    "PD009",    # .iat is the right tool for hot-path scalar reads
+    "B008",     # Typer requires function calls (typer.Option) in defaults
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["ANN", "S101"]
+"notebooks/**" = ["E402", "ANN"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pyright]
+include = ["src", "tests"]
+exclude = ["**/__pycache__", "**/.venv", "notebooks"]
+pythonVersion = "3.12"
+# Standard mode catches genuine bugs (undefined names, missing imports, wrong
+# argument counts). The four "report*" suppressions below are pandas-stubs
+# limitations, not real type errors:
+#  - pandas's .dropna() / .loc[] return `DataFrame | Series` unions pyright
+#    cannot narrow even when the runtime guarantees Series;
+#  - float(series.iloc[0]) is correct at runtime but typed as Series | float;
+#  - DatetimeIndex element access returns "Index" in the stubs but Timestamp
+#    at runtime.
+# Tightening these back to true requires pandas-stubs improvements upstream.
+typeCheckingMode = "standard"
+reportMissingTypeStubs = false
+reportUnknownMemberType = false
+reportUnknownArgumentType = false
+reportUnknownVariableType = false
+reportAssignmentType = false
+reportReturnType = false
+reportArgumentType = false
+reportAttributeAccessIssue = false
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "-m", "not slow",
+]
+markers = [
+    "slow: integration tests that hit the network or take >1s",
+]
+testpaths = ["tests"]
+filterwarnings = [
+    "error",
+    "ignore::DeprecationWarning:yfinance.*",
+    "ignore::DeprecationWarning:pkg_resources.*",
+]
+
+[tool.coverage.run]
+source = ["src/ma_backtester"]
+branch = true
+omit = ["src/ma_backtester/__main__.py", "src/ma_backtester/cli.py"]
+
+[tool.coverage.report]
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "@overload",
+]
+show_missing = true
+skip_covered = false

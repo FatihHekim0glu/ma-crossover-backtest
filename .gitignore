@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# uv / tooling
+.ruff_cache/
+.mypy_cache/
+.pyright_cache/
+.pytest_cache/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Jupyter
+.ipynb_checkpoints/
+notebooks/**/*.html
+
+# Project artefacts (regenerated from CLI)
+data/cache/
+results/
+
+# Local
+.env
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Editor / assistant scratch
+CLAUDE.md
+.claude/
+
+# OS
+Thumbs.db
+
+# Keep small committed fixtures
+!data/fixtures/
+!tests/fixtures/
