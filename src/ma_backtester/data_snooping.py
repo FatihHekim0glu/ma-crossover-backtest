@@ -111,7 +111,7 @@ def probabilistic_sharpe_ratio(
     # See module docstring: (k + 2) / 4 in terms of excess kurtosis k,
     # equivalent to (g4 - 1) / 4 in terms of non-excess kurtosis g4.
     var = (1.0 - skew * sr_daily + ((kurt + 2.0) / 4.0) * sr_daily**2) / (n - 1)
-    if var <= 0:
+    if var <= 0:  # pragma: no cover — variance is non-negative for valid return samples
         return float("nan")
 
     sr_bench_daily = benchmark_sharpe_annual / math.sqrt(TRADING_DAYS_PER_YEAR)
@@ -153,7 +153,7 @@ def deflated_sharpe_ratio(
     # See module docstring: (k + 2) / 4 in terms of excess kurtosis k,
     # equivalent to (g4 - 1) / 4 in terms of non-excess kurtosis g4.
     sr_var_daily = (1.0 - skew * sr_daily + ((kurt + 2.0) / 4.0) * sr_daily**2) / (n - 1)
-    if sr_var_daily <= 0:
+    if sr_var_daily <= 0:  # pragma: no cover — non-negative by construction for valid samples
         raise ValueError("non-positive Sharpe variance — check input")
 
     n_eff = n_effective_trials if n_effective_trials is not None else max(1, n_trials)

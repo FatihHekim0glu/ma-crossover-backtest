@@ -139,7 +139,7 @@ filterwarnings = [
 [tool.coverage.run]
 source = ["src/ma_backtester"]
 branch = true
-omit = ["src/ma_backtester/__main__.py", "src/ma_backtester/cli.py"]
+omit = ["src/ma_backtester/__main__.py"]
 
 [tool.coverage.report]
 exclude_also = [

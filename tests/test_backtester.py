@@ -108,3 +108,16 @@ def test_trades_have_consistent_dates(seeded_gbm_prices: pd.Series) -> None:
     if not result.trades.empty:
         assert (result.trades["exit_date"] >= result.trades["entry_date"]).all()
         assert (result.trades["bars_held"] > 0).all()
+
+
+def test_sweep_default_cost_model_is_zero(seeded_gbm_prices: pd.Series) -> None:
+    """``cost_model=None`` falls through to zero-cost — every config runs."""
+    from ma_backtester.backtester import sweep
+    from ma_backtester.config import SweepConfig
+
+    grid = SweepConfig(fast_windows=(5, 10), slow_windows=(20, 50)).grid()
+    results = sweep(close=seeded_gbm_prices, grid=grid, cost_model=None)
+    assert len(results) == len(grid)
+    for cfg, res in results.items():
+        assert (res.costs == 0.0).all()
+        assert cfg.fast_window < cfg.slow_window

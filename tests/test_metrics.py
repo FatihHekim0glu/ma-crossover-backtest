@@ -31,6 +31,25 @@ def test_total_return_simple_case() -> None:
     assert total_return(equity) == pytest.approx(0.21)
 
 
+def test_total_return_nan_for_single_bar() -> None:
+    """Defensive guard: 1-bar series has no return."""
+    assert math.isnan(total_return(_series([100.0])))
+
+
+def test_annualised_volatility_nan_for_short_series() -> None:
+    """ddof=1 needs 2 observations; single-bar returns NaN."""
+    assert math.isnan(annualised_volatility(_series([0.01])))
+
+
+def test_sharpe_nan_for_single_observation() -> None:
+    """Single-observation series has no variance → NaN."""
+    assert math.isnan(sharpe_ratio(_series([0.01])))
+
+
+def test_sortino_nan_for_single_observation() -> None:
+    assert math.isnan(sortino_ratio(_series([0.01])))
+
+
 def test_cagr_for_one_year_doubling() -> None:
     equity = _series([100.0] * 252 + [200.0])
     # Equity is flat then jumps; CAGR uses geometric formula over N-1 bars
@@ -146,3 +165,81 @@ def test_sortino_higher_than_sharpe_when_skewed_positive() -> None:
     sharpe = sharpe_ratio(rets)
     sortino = sortino_ratio(rets)
     assert sortino > sharpe
+
+
+# --------------------------------------------------------------------------- #
+# Coverage push — defensive guards and uncovered branches (cycle 6)
+# --------------------------------------------------------------------------- #
+
+
+def test_cagr_nan_for_nonpositive_initial_equity() -> None:
+    """Initial equity ≤ 0 → CAGR undefined."""
+    equity = _series([0.0, 100.0, 200.0])
+    assert math.isnan(cagr(equity))
+
+
+def test_cagr_nan_for_single_bar() -> None:
+    equity = _series([100.0])
+    assert math.isnan(cagr(equity))
+
+
+def test_single_bar_drawdown_guards() -> None:
+    """All three drawdown metrics handle a 1-bar series defensively."""
+    eq = _series([100.0])
+    assert math.isnan(max_drawdown(eq))
+    assert math.isnan(average_drawdown(eq))
+    assert max_drawdown_duration(eq) == 0
+
+
+def test_sortino_nan_for_all_positive_returns() -> None:
+    """Downside deviation is zero when every return is positive → NaN, not inf."""
+    rets = _series([0.01, 0.02, 0.005, 0.015, 0.03])
+    assert math.isnan(sortino_ratio(rets))
+
+
+def test_annualised_turnover_basic_and_single_bar() -> None:
+    """Round-trip turnover ≈ 2 per year on a single open/close cycle."""
+    from ma_backtester.metrics import annualised_turnover
+
+    positions = _series([0.0] + [1.0] * 251 + [0.0])
+    assert annualised_turnover(positions) == pytest.approx(2.0, rel=1e-2)
+    assert annualised_turnover(_series([1.0])) == 0.0
+
+
+def test_trade_statistics_empty_and_winners_only() -> None:
+    from ma_backtester.metrics import trade_statistics
+
+    empty = trade_statistics(pd.DataFrame({"net_return": [], "bars_held": []}))
+    assert empty["n_trades"] == 0
+    assert math.isnan(empty["profit_factor"])
+
+    winners = pd.DataFrame({"net_return": [0.05, 0.02], "bars_held": [3, 7]})
+    s = trade_statistics(winners)
+    assert math.isinf(s["profit_factor"])
+    assert s["profit_factor"] > 0
+
+
+def test_trade_statistics_losers_only_gives_zero_profit_factor() -> None:
+    from ma_backtester.metrics import trade_statistics
+
+    losers = pd.DataFrame({"net_return": [-0.01, -0.03], "bars_held": [4, 6]})
+    s = trade_statistics(losers)
+    assert s["profit_factor"] == pytest.approx(0.0)
+    assert math.isnan(s["avg_win"])
+    assert s["win_rate"] == 0.0
+
+
+def test_compute_metrics_table_end_to_end() -> None:
+    """Smoke-test the bundling function — exercises every metric path."""
+    from ma_backtester.metrics import compute_metrics_table
+
+    equity = _series([100.0, 102.0, 101.0, 105.0])
+    rets = equity.pct_change().dropna()
+    positions = _series([0.0, 1.0, 1.0, 0.0])
+    trades = pd.DataFrame({"net_return": [0.05, -0.01], "bars_held": [2, 1]})
+    table = compute_metrics_table(
+        equity=equity, daily_returns=rets, positions=positions, trades=trades
+    )
+    assert table.n_trades == 2
+    assert math.isfinite(table.total_return)
+    assert math.isfinite(table.annual_vol)

@@ -31,13 +31,13 @@ A from-scratch vectorised Python backtester for the moving-average crossover str
 | Information ratio | −0.42 | Strategy *loses* per unit of active risk |
 | Sharpe-difference (Memmel-JK) | −0.105 | p = 0.52 |
 
-Run `uv run ma-backtester run --ticker SPY --fast 50 --slow 200 --start 2010-01-01 --end 2024-12-31` to reproduce.
+![equity curve](docs/assets/equity_curve.png)
 
 ## Live demo
 
-A Streamlit Cloud demo of the dashboard is available.
+No hosted demo URL is committed to the repo — deploy your own in two clicks:
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](PLACEHOLDER_URL)
+[![Deploy](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/deploy?repository=FatihHekim0glu/ma-crossover-backtest&branch=main&mainModule=streamlit_app.py)
 
 The hosted version loads SPY 2010-2024 by default; use the sidebar to switch tickers (SPY, QQQ, IWM, GLD, TLT) and parameters.
 
@@ -53,10 +53,10 @@ The defensible *non*-claim is risk shape: the strategy spends ~36 % of the time 
 
 ## What this repository actually demonstrates
 
-1. **A vectorised engine with the `position = signal.shift(1)` discipline** enforced, not just documented. The no-lookahead invariant is property-tested via prefix-determinism (`tests/test_no_lookahead.py`): for any random truncation point `t` and any GBM-sampled price path, `backtest(prices[:t]).positions` must equal the first `t` elements of `backtest(prices).positions`. 40 Hypothesis examples per run, plus a future-perturbation invariance check.
+1. **A vectorised engine with the `position = signal.shift(1)` discipline** enforced, not just documented. The no-lookahead invariant is property-tested via prefix-determinism (`tests/test_no_lookahead.py`): for any random truncation point `t` and any GBM-sampled price path, `backtest(prices[:t]).positions` must equal the first `t` elements of `backtest(prices).positions`. 40 Hypothesis examples on each of two independent properties (prefix-determinism + future-perturbation invariance).
 2. **Realistic transaction-cost modelling** with sensitivity reporting at 0 / 5 / 10 / 20 bps per side (notebook 5). Trend rules degrade roughly linearly in cost.
 3. **Walk-forward evaluation**: anchored 5-year train / 1-year out-of-sample / 1-year step. Selected parameters tie-broken by 8-neighbour plateau Sharpe rather than raw max, which Pardo, Aronson, and Bailey all recommend as the better robustness proxy.
-4. **Multiple-testing correction**: Deflated Sharpe Ratio (Bailey & López de Prado, 2014) over the parameter grid, with effective trial count estimated via PCA on the strategy-return matrix (90 % variance threshold).
+4. **Multiple-testing correction**: Deflated Sharpe Ratio (Bailey & López de Prado, 2014) over the parameter grid, with effective trial count estimated via PCA on the strategy-return matrix (95 % variance threshold).
 5. **HAC-corrected benchmark comparison**: CAPM regression with Newey-West standard errors at Andrews' 1991 bandwidth, plus Memmel-corrected Jobson-Korkie Sharpe-difference test. Without HAC the alpha p-value is artificially lower because residuals are autocorrelated for the entire holding period.
 6. **Five-asset robustness check** on broad ETFs (SPY, QQQ, IWM, GLD, TLT) — picked specifically to avoid survivorship bias that a basket of "stocks still trading today" would silently introduce.
 
@@ -89,8 +89,8 @@ uv run ma-backtester walk-forward --ticker SPY --start 2005-01-01 --end 2024-12-
 uv run jupyter lab notebooks/
 
 # Test suite + type check
-uv run pytest -q              # ~2.5s
-uv run pyright src tests      # 0 errors
+uv run pytest -q              # KIKO + property-based; offline
+uv run pyright src tests      # standard mode, 0 errors
 uv run ruff check . && uv run ruff format --check .
 ```
 

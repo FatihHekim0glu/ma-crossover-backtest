@@ -21,7 +21,7 @@ from ma_backtester.config import CostConfig
 class CostModel(Protocol):
     """Anything that can turn a position series into a per-bar cost drag."""
 
-    def cost_series(self, positions: pd.Series) -> pd.Series: ...
+    def cost_series(self, positions: pd.Series) -> pd.Series: ...  # pragma: no cover
 
 
 class FixedBpsCost:

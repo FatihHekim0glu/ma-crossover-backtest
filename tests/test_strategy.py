@@ -2,11 +2,24 @@
 
 from __future__ import annotations
 
+from datetime import date as _date
+
 import numpy as np
 import pandas as pd
 import pytest
 
-from ma_backtester.config import StrategyConfig
+from ma_backtester.config import (
+    CostConfig as _CostConfig,
+)
+from ma_backtester.config import (
+    RunConfig as _RunConfig,
+)
+from ma_backtester.config import (
+    StrategyConfig,
+)
+from ma_backtester.config import (
+    SweepConfig as _SweepConfig,
+)
 from ma_backtester.strategy import (
     buy_and_hold_position,
     generate_signal,
@@ -49,3 +62,55 @@ def test_invalid_strategy_config_rejected() -> None:
         StrategyConfig(fast_window=20, slow_window=20)
     with pytest.raises(ValueError, match="positive"):
         StrategyConfig(fast_window=0, slow_window=10)
+
+
+def test_generate_signal_rejects_non_series() -> None:
+    """Defensive guard: numpy array or list must not silently pass through."""
+    import numpy as np
+
+    cfg = StrategyConfig(fast_window=10, slow_window=30)
+    with pytest.raises(TypeError, match="pandas Series"):
+        generate_signal(np.arange(100, dtype=float), cfg)  # type: ignore[arg-type]
+
+
+def test_run_config_validates_inputs() -> None:
+    """RunConfig.__post_init__ rejects empty ticker / reversed dates / non-positive cash."""
+    valid_strategy = StrategyConfig(fast_window=10, slow_window=30)
+    valid_cost = _CostConfig(per_side_bps=5.0)
+
+    with pytest.raises(ValueError, match="non-empty"):
+        _RunConfig(
+            ticker="  ",
+            start=_date(2010, 1, 1),
+            end=_date(2020, 1, 1),
+            strategy=valid_strategy,
+            cost=valid_cost,
+        )
+
+    with pytest.raises(ValueError, match="after start"):
+        _RunConfig(
+            ticker="SPY",
+            start=_date(2020, 1, 1),
+            end=_date(2010, 1, 1),
+            strategy=valid_strategy,
+            cost=valid_cost,
+        )
+
+    with pytest.raises(ValueError, match="initial_cash"):
+        _RunConfig(
+            ticker="SPY",
+            start=_date(2010, 1, 1),
+            end=_date(2020, 1, 1),
+            strategy=valid_strategy,
+            cost=valid_cost,
+            initial_cash=0.0,
+        )
+
+
+def test_sweep_config_rejects_empty_grid() -> None:
+    """SweepConfig.__post_init__ refuses degenerate grids."""
+    with pytest.raises(ValueError, match="non-empty"):
+        _SweepConfig(fast_windows=(), slow_windows=(20,))
+    with pytest.raises(ValueError, match="empty grid"):
+        # fast >= slow for every pair -> no usable configs
+        _SweepConfig(fast_windows=(50,), slow_windows=(10,))

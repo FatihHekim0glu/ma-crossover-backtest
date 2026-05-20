@@ -121,3 +121,44 @@ def test_psr_normal_returns_matches_paper_formula() -> None:
     assert probabilistic_sharpe_ratio(daily_returns=rets) == pytest.approx(
         expected_psr, rel=1e-3, abs=1e-3
     )
+
+
+# --------------------------------------------------------------------------- #
+# Coverage push — fallback branches in N_eff and PSR (cycle 6)
+# --------------------------------------------------------------------------- #
+
+
+def test_n_effective_single_row_falls_back_to_column_count() -> None:
+    """clean.shape[0] < 2 → fall through to column count."""
+    mat = pd.DataFrame({"a": [0.01], "b": [0.02], "c": [0.03]}, index=_bdays(1))
+    assert effective_number_of_trials(returns_matrix=mat) == 3
+
+
+def test_n_effective_single_column_falls_back() -> None:
+    """Single-column matrix has no covariance → fall through to column count."""
+    mat = pd.DataFrame({"only": np.linspace(0, 0.01, 200)}, index=_bdays(200))
+    assert effective_number_of_trials(returns_matrix=mat) == 1
+
+
+def test_n_effective_zero_variance_falls_back() -> None:
+    """All-constant returns → covariance is zero → fallback to column count."""
+    mat = pd.DataFrame({f"s{i}": [0.001] * 100 for i in range(4)}, index=_bdays(100))
+    assert effective_number_of_trials(returns_matrix=mat) == 4
+
+
+def test_psr_short_series_returns_nan() -> None:
+    rets = pd.Series([0.001] * 20, index=_bdays(20))
+    assert math.isnan(probabilistic_sharpe_ratio(daily_returns=rets))
+
+
+def test_psr_zero_volatility_returns_nan() -> None:
+    rets = pd.Series([0.0] * 100, index=_bdays(100))
+    assert math.isnan(probabilistic_sharpe_ratio(daily_returns=rets))
+
+
+def test_dsr_defaults_n_effective_to_n_trials() -> None:
+    """When n_effective_trials is None, DSR uses n_trials directly."""
+    rng = np.random.default_rng(11)
+    rets = pd.Series(rng.normal(0.001, 0.01, 500), index=_bdays(500))
+    result = deflated_sharpe_ratio(daily_returns=rets, n_trials=42)
+    assert result.n_effective_trials == 42

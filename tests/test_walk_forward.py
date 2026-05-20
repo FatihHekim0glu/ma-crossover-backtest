@@ -125,3 +125,66 @@ def test_walk_forward_smoke() -> None:
     assert isinstance(result.concatenated_equity, pd.Series)
     for fold in result.folds:
         assert fold.selected_fast < fold.selected_slow
+
+
+# --------------------------------------------------------------------------- #
+# Coverage push — edge cases in fold logic + selection (cycle 6)
+# --------------------------------------------------------------------------- #
+
+
+def test_grid_neighbour_mean_sharpe_all_nan_neighbours() -> None:
+    """Tied config whose 8 neighbours are NaN: deterministic lex tie-break still wins."""
+    sweep = SweepConfig(fast_windows=(5, 10, 20), slow_windows=(20, 50, 100))
+    sharpes = dict.fromkeys(sweep.grid(), float("nan"))
+    sharpes[StrategyConfig(fast_window=5, slow_window=20)] = 1.0
+    sharpes[StrategyConfig(fast_window=20, slow_window=100)] = 1.0
+    chosen = _select_best(sharpes, sweep, use_neighbourhood=True)
+    # Both candidates have NaN neighbourhood mean; lex order picks (5, 20).
+    assert (chosen.fast_window, chosen.slow_window) == (5, 20)
+
+
+def test_run_walk_forward_skips_fold_when_all_nan(
+    caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """If _select_best raises (all-NaN grid), fold is skipped + warning logged."""
+    import ma_backtester.walk_forward as wf_mod
+
+    monkeypatch.setattr(wf_mod, "sharpe_ratio", lambda r: float("nan"))
+    prices = make_gbm_series(seed=3, n=252 * 7)
+    sweep = SweepConfig(fast_windows=(10,), slow_windows=(50,))
+    with caplog.at_level("WARNING", logger="ma_backtester.walk_forward"):
+        result = run_walk_forward(close=prices, ticker="X", sweep=sweep)
+    assert result.folds == []
+    assert any("skipped" in r.message for r in caplog.records)
+
+
+def test_run_walk_forward_default_cost_model_runs() -> None:
+    """cost_model=None falls through to zero_cost_model without error."""
+    prices = make_gbm_series(seed=4, n=252 * 7)
+    sweep = SweepConfig(fast_windows=(10,), slow_windows=(50,))
+    result = run_walk_forward(close=prices, ticker="X", sweep=sweep, cost_model=None)
+    assert result.concatenated_equity is not None
+
+
+def test_run_walk_forward_empty_folds_returns_none_concats() -> None:
+    """Series shorter than one train+test window → 0 folds, both concats are None."""
+    prices = make_gbm_series(seed=5, n=252 * 4)  # 4y < 5y train default
+    sweep = SweepConfig(fast_windows=(10,), slow_windows=(50,))
+    result = run_walk_forward(close=prices, ticker="X", sweep=sweep)
+    assert result.folds == []
+    assert result.concatenated_equity is None
+    assert result.concatenated_returns is None
+
+
+def test_run_walk_forward_deterministic() -> None:
+    """Two identical runs produce identical fold selections and equity."""
+    prices = make_gbm_series(seed=6, n=252 * 8)
+    sweep = SweepConfig(fast_windows=(10, 20), slow_windows=(50, 100))
+    r1 = run_walk_forward(close=prices, ticker="X", sweep=sweep)
+    r2 = run_walk_forward(close=prices, ticker="X", sweep=sweep)
+    assert [(f.selected_fast, f.selected_slow) for f in r1.folds] == [
+        (f.selected_fast, f.selected_slow) for f in r2.folds
+    ]
+    assert r1.concatenated_equity is not None
+    assert r2.concatenated_equity is not None
+    pd.testing.assert_series_equal(r1.concatenated_equity, r2.concatenated_equity)

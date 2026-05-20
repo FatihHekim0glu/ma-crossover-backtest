@@ -46,6 +46,14 @@ def test_cost_config_rejects_absurd_bps() -> None:
         CostConfig(per_side_bps=5000.0)
 
 
+def test_fixed_bps_cost_exposes_config() -> None:
+    """The ``config`` property is the read-back accessor for the wrapped CostConfig."""
+    cfg = CostConfig(per_side_bps=7.5)
+    cm = FixedBpsCost(cfg)
+    assert cm.config is cfg
+    assert cm.config.per_side_bps == 7.5
+
+
 def test_fixed_bps_cost_charges_on_turnover() -> None:
     cm = FixedBpsCost(CostConfig(per_side_bps=5.0))
     pos = _positions([0, 1, 1, 0, 1, 0])

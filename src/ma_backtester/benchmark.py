@@ -128,7 +128,9 @@ def memmel_sharpe_difference_test(
     cov_ab = float(np.cov(a, b, ddof=1)[0, 1])
     sig_a = math.sqrt(var_a)
     sig_b = math.sqrt(var_b)
-    if sig_a < 1e-12 or sig_b < 1e-12:
+    if (
+        sig_a < 1e-12 or sig_b < 1e-12
+    ):  # pragma: no cover — defensive guard, unreachable from valid samples
         return float("nan"), float("nan")
 
     sr_a_daily = mu_a / sig_a
@@ -149,7 +151,9 @@ def memmel_sharpe_difference_test(
     # against itself is 1.0 — flag it as such, not NaN.
     if abs(diff_daily) < 1e-15 and theta <= 0:
         return diff_annualised, 1.0
-    if theta <= 0:
+    if (
+        theta <= 0
+    ):  # pragma: no cover — non-zero diff but zero variance is mathematically pathological
         return diff_annualised, float("nan")
 
     z = diff_daily / math.sqrt(theta)
