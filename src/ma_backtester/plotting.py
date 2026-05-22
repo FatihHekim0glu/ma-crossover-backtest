@@ -85,14 +85,16 @@ def underwater_drawdown(
 
     fig = go.Figure()
     strat_dd = _dd(strategy_equity)
+    # Strategy = blue, Buy & Hold = red (dashed) — matches the equity curve
+    # so the two charts read as a coherent pair.
     fig.add_trace(
         go.Scattergl(
             x=strat_dd.index,
             y=strat_dd.to_numpy(),
             fill="tozeroy",
             name="Strategy",
-            line={"color": "rgb(180,30,30)", "width": 1.2},
-            fillcolor="rgba(220,50,50,0.3)",
+            line={"color": "rgb(31,119,180)", "width": 1.4},
+            fillcolor="rgba(31,119,180,0.30)",
         )
     )
     if benchmark_equity is not None:
@@ -103,8 +105,8 @@ def underwater_drawdown(
                 y=bench_dd.to_numpy(),
                 fill="tozeroy",
                 name="Buy & Hold",
-                line={"color": "rgb(100,100,150)", "width": 1.0, "dash": "dot"},
-                fillcolor="rgba(100,100,150,0.15)",
+                line={"color": "rgb(214,39,40)", "width": 1.0, "dash": "dash"},
+                fillcolor="rgba(214,39,40,0.15)",
             )
         )
 
@@ -312,8 +314,8 @@ def report_dashboard(
             y=strat_dd.to_numpy(),
             fill="tozeroy",
             name="DD",
-            line={"color": "rgb(180,30,30)"},
-            fillcolor="rgba(220,50,50,0.3)",
+            line={"color": "rgb(31,119,180)"},
+            fillcolor="rgba(31,119,180,0.30)",
             showlegend=False,
         ),
         row=2,

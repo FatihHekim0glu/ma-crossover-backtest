@@ -204,7 +204,38 @@ def compute_metrics_table(
     trades: pd.DataFrame,
     risk_free_annual: float = 0.0,
 ) -> MetricsTable:
-    """Bundle the standard performance metrics for one backtest result."""
+    """Bundle the standard performance metrics for one backtest result.
+
+    Computes return, risk, risk-adjusted, drawdown and trade-level statistics
+    from a single :class:`BacktestResult`'s components.
+
+    Parameters
+    ----------
+    equity, daily_returns, positions : pd.Series
+        Equity curve, net daily returns, and position series (0/1) — typically
+        ``result.equity``, ``result.daily_returns``, ``result.positions``.
+    trades : pd.DataFrame
+        Trade ledger from ``run_backtest`` (``result.trades``).
+    risk_free_annual : float
+        Annualised risk-free rate; converted to daily internally for Sharpe.
+
+    Returns
+    -------
+    MetricsTable
+        Frozen dataclass with ``cagr``, ``sharpe``, ``sortino``, ``calmar``,
+        ``max_drawdown``, trade stats and turnover.
+
+    Examples
+    --------
+    >>> from ma_backtester import StrategyConfig, run_backtest, compute_metrics_table
+    >>> import pandas as pd
+    >>> prices = pd.Series([100, 101, 102, 103], index=pd.bdate_range("2020-01-01", periods=4))
+    >>> r = run_backtest(close=prices, strategy_config=StrategyConfig(fast_window=1, slow_window=2))
+    >>> table = compute_metrics_table(equity=r.equity, daily_returns=r.daily_returns,
+    ...                               positions=r.positions, trades=r.trades)
+    >>> table.n_trades >= 0
+    True
+    """
     trade_stats = trade_statistics(trades)
     return MetricsTable(
         total_return=total_return(equity),

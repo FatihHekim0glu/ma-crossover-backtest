@@ -167,7 +167,36 @@ def compare_strategies(
     benchmark_returns: pd.Series,
     risk_free_annual: float = 0.0,
 ) -> BenchmarkComparison:
-    """Run all three tests and bundle into a BenchmarkComparison."""
+    """Run CAPM alpha, information ratio, and Memmel-JK Sharpe-diff jointly.
+
+    Aligns the two series on inner-join, then runs all three tests and
+    bundles the results into a single dataclass. HAC bandwidth follows
+    Andrews (1991).
+
+    Parameters
+    ----------
+    strategy_returns, benchmark_returns : pd.Series
+        Daily simple returns. Misaligned or NaN rows are dropped.
+    risk_free_annual : float
+        Used only by the CAPM regression's excess-return transform.
+
+    Returns
+    -------
+    BenchmarkComparison
+        Alpha (annualised), t-statistic, p-value, beta, beta SE,
+        information ratio, tracking error, active return, Sharpe difference
+        + p-value, ``n_observations`` and ``hac_lags``.
+
+    Raises
+    ------
+    ValueError
+        Fewer than 30 aligned observations (propagated from the underlying
+        regression / test functions).
+
+    References
+    ----------
+    Newey & West (1987); Andrews (1991); Memmel (2003); Grinold (1989).
+    """
     aligned = pd.concat([strategy_returns, benchmark_returns], axis=1, join="inner").dropna()
     n_obs = len(aligned)
 

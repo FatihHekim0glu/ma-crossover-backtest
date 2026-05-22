@@ -1,9 +1,9 @@
 # ma-crossover-backtest
 
-![python](https://img.shields.io/badge/python-3.12%2B-blue)
+[![ci](https://github.com/FatihHekim0glu/ma-crossover-backtest/actions/workflows/ci.yml/badge.svg)](https://github.com/FatihHekim0glu/ma-crossover-backtest/actions/workflows/ci.yml)
+![python](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
-![tests](https://img.shields.io/badge/tests-passing-brightgreen)
-![types](https://img.shields.io/badge/pyright-clean-brightgreen)
+![coverage](https://img.shields.io/badge/coverage-97%25-brightgreen)
 
 A from-scratch vectorised Python backtester for the moving-average crossover strategy on US-equity ETFs, with property-tested no-lookahead invariants, Newey-West HAC alpha, and Deflated Sharpe Ratio adjustment for data-snooping.
 
@@ -41,7 +41,11 @@ No hosted demo URL is committed to the repo — deploy your own in two clicks:
 
 The hosted version loads SPY 2010-2024 by default; use the sidebar to switch tickers (SPY, QQQ, IWM, GLD, TLT) and parameters.
 
-![dashboard screenshot](docs/assets/dashboard.png)
+![dashboard — main view](docs/assets/dashboard_full.png)
+
+The walk-forward tab is the project's punchline view: per-fold in-sample vs out-of-sample Sharpes, the IS-vs-OOS scatter, and the Deflated Sharpe Ratio computed on the concatenated OOS return series.
+
+![dashboard — walk-forward tab](docs/assets/dashboard_walk_forward.png)
 
 ## Why this is the right answer
 
@@ -144,10 +148,10 @@ notebooks/           01 basic backtest -> 05 final report
 `requirements.txt` is auto-generated from `uv.lock`; regenerate it with:
 
 ```bash
-uv export --format requirements-txt --no-dev --no-emit-project --extra app --output-file requirements.txt
+uv export --format requirements-txt --no-dev --extra app --output-file requirements.txt
 ```
 
-`--extra app` includes `streamlit` (which lives under `[project.optional-dependencies].app` in `pyproject.toml`).
+`--extra app` includes `streamlit` (which lives under `[project.optional-dependencies].app` in `pyproject.toml`). The export emits the project itself as the last line so Streamlit Cloud can install it via `pip install -r requirements.txt`.
 
 A secrets template is provided in `.streamlit/secrets.toml.example`.
 

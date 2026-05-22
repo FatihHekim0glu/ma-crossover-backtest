@@ -1,4 +1,4 @@
-"""Generate static documentation assets (equity-curve PNG, dashboard placeholder).
+"""Generate the equity-curve PNG embedded in the README.
 
 Run with::
 
@@ -10,20 +10,18 @@ installed via ``uv sync --all-extras``.
 
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 
 from ma_backtester import backtester, config, costs, data, plotting
 
 
 def generate_equity_curve_png(output_dir: Path) -> None:
-    """Run a default SPY backtest and write equity-curve / dashboard PNGs.
+    """Run a default SPY backtest and write the equity-curve PNG.
 
     Parameters
     ----------
     output_dir : Path
-        Directory to write ``equity_curve.png`` and ``dashboard.png`` into.
-        Must already exist.
+        Directory to write ``equity_curve.png`` into. Must already exist.
     """
     close = data.load_close("SPY", start="2010-01-01", end="2024-12-31")
 
@@ -46,10 +44,7 @@ def generate_equity_curve_png(output_dir: Path) -> None:
     )
 
     equity_path = output_dir / "equity_curve.png"
-    dashboard_path = output_dir / "dashboard.png"
-
     fig.write_image(equity_path, width=1200, height=600, scale=2)
-    shutil.copyfile(equity_path, dashboard_path)
 
 
 if __name__ == "__main__":
@@ -57,4 +52,3 @@ if __name__ == "__main__":
     output_dir.mkdir(parents=True, exist_ok=True)
     generate_equity_curve_png(output_dir)
     print(f"Wrote {output_dir / 'equity_curve.png'}")
-    print(f"Wrote {output_dir / 'dashboard.png'}")

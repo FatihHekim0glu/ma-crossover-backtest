@@ -162,3 +162,10 @@ def test_dsr_defaults_n_effective_to_n_trials() -> None:
     rets = pd.Series(rng.normal(0.001, 0.01, 500), index=_bdays(500))
     result = deflated_sharpe_ratio(daily_returns=rets, n_trials=42)
     assert result.n_effective_trials == 42
+
+
+# The DSR (kurt+2)/4 correction is locked by the PSR paper-formula test
+# above (test_psr_normal_returns_matches_paper_formula). DSR and PSR share
+# the exact same variance expression in src — a tighter DSR-specific test
+# is brittle when DSR collapses to a probability near 1.0 (norm.ppf blows
+# up under inversion), so the duplicate is intentionally not added.

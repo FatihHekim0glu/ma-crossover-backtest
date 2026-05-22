@@ -295,7 +295,38 @@ def load_close(
     end: str | date | None = None,
     cache_dir: Path = _DEFAULT_CACHE_DIR,
 ) -> pd.Series:
-    """Convenience: just the adjusted close series."""
+    """Load the adjusted-close series for one ticker.
+
+    Thin wrapper around :func:`load_ohlcv` that returns only the ``Close``
+    column as a float64 ``pd.Series`` named after the ticker.
+
+    Parameters
+    ----------
+    ticker : str
+        US-equity ticker, e.g. ``"SPY"``. Validated and uppercased by
+        :func:`_safe_ticker`.
+    start, end : str | date | None
+        ISO-formatted dates or ``date`` objects. ``end=None`` means today.
+    cache_dir : Path
+        Parquet cache root. Defaults to ``data/cache/ohlcv/`` relative to cwd.
+
+    Returns
+    -------
+    pd.Series
+        Adjusted close, indexed by tz-naive DatetimeIndex, float64, NaN-free.
+
+    Raises
+    ------
+    DataQualityError
+        Both yfinance and the Stooq fallback returned unusable data, OR the
+        loaded frame failed the OHLC sanity checks in :func:`validate`.
+
+    Examples
+    --------
+    >>> close = load_close("SPY", start="2020-01-01", end="2020-12-31")  # doctest: +SKIP
+    >>> close.name  # doctest: +SKIP
+    'SPY'
+    """
     df = load_ohlcv(ticker, start=start, end=end, cache_dir=cache_dir)
     s = df["Close"].astype("float64")
     s.name = ticker

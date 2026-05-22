@@ -30,6 +30,11 @@ notebooks = [
 app = [
     "streamlit>=1.39",
 ]
+screenshots = [
+    # Optional: capture live dashboard screenshots for the README.
+    # Run `uv run playwright install chromium` once after sync.
+    "playwright>=1.45",
+]
 
 [project.scripts]
 ma-backtester = "ma_backtester.cli:app"
@@ -38,11 +43,15 @@ ma-backtester = "ma_backtester.cli:app"
 dev = [
     "pytest>=8.3",
     "pytest-cov>=5.0",
+    "pytest-randomly>=3.15",  # randomises test order so global-state leaks fail loudly
     "hypothesis>=6.112",
     "ruff>=0.7",
     "pyright>=1.1.380",
     "pre-commit>=3.8",
     "freezegun>=1.5",
+    # streamlit is also in `[project.optional-dependencies].app` for Cloud deploy;
+    # listed here so pyright + tests/test_app.py see it in the dev venv.
+    "streamlit>=1.39",
 ]
 
 [build-system]
