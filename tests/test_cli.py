@@ -7,6 +7,8 @@ a tiny grid so the full suite stays under ~5 seconds.
 
 from __future__ import annotations
 
+import re
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -89,10 +91,15 @@ def test_walk_forward_happy_path(patched_load: pd.Series, tiny_sweep: SweepConfi
 
 @pytest.mark.parametrize("cmd", ["run", "sweep", "walk-forward"])
 def test_help_lists_options(cmd: str) -> None:
-    result = runner.invoke(app, [cmd, "--help"])
+    # Force a wide terminal so Rich-formatted help renders option names on
+    # a single line. On default CI runners (~80 cols) the panel box wraps
+    # `--ticker` across the border, defeating a literal substring match.
+    result = runner.invoke(app, [cmd, "--help"], env={"COLUMNS": "200", "TERM": "dumb"})
     assert result.exit_code == 0
-    assert "--ticker" in result.stdout
-    assert "--cost-bps" in result.stdout
+    # Strip ANSI escapes for robust matching across Rich versions / terminals.
+    plain = re.sub(r"\x1b\[[0-9;]*m", "", result.stdout)
+    assert "--ticker" in plain
+    assert "--cost-bps" in plain
 
 
 def test_sweep_data_quality_error_exits_cleanly(monkeypatch: pytest.MonkeyPatch) -> None:
