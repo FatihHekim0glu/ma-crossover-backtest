@@ -1,5 +1,7 @@
 # ma-crossover-backtest
 
+> **Now live as an interactive web tool at https://fatihhekimoglu-platform.vercel.app/tools/ma-crossover-backtest** — part of the fatihhekimoglu.com quantitative-tools platform. The Streamlit app here remains usable for local development; the hosted version uses the same compute library wrapped in a FastAPI backend.
+
 [![ci](https://github.com/FatihHekim0glu/ma-crossover-backtest/actions/workflows/ci.yml/badge.svg)](https://github.com/FatihHekim0glu/ma-crossover-backtest/actions/workflows/ci.yml)
 ![python](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
