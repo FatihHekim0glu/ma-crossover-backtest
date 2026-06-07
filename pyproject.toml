@@ -18,6 +18,7 @@ dependencies = [
     "typer>=0.12,<1.0",
     "rich>=13.7",
     "pyyaml>=6.0",
+    "httpx>=0.27",
 ]
 
 [project.optional-dependencies]
@@ -137,6 +138,8 @@ addopts = [
 ]
 markers = [
     "slow: integration tests that hit the network or take >1s",
+    "unit: fast in-process tests with no I/O — no network, no parquet writes",
+    "network: tests that require live network access (skipped by default in CI)",
 ]
 testpaths = ["tests"]
 filterwarnings = [

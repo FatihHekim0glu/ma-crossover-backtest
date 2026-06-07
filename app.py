@@ -34,6 +34,11 @@ from ma_backtester.config import (
 )
 from ma_backtester.costs import FixedBpsCost
 from ma_backtester.data import DataQualityError, load_close
+from ma_backtester.data_providers import (
+    PolygonProvider,
+    YFinanceProvider,
+    make_provider,
+)
 from ma_backtester.data_snooping import (
     deflated_sharpe_ratio,
     effective_number_of_trials,
@@ -73,6 +78,23 @@ install_theme()
 @st.cache_data(show_spinner="Loading price data...", ttl=60 * 60)
 def cached_load_close(ticker: str, start: str, end: str) -> pd.Series:
     return load_close(ticker, start=start, end=end)
+
+
+@st.cache_resource(show_spinner=False)
+def _resolve_provider_label() -> str:
+    """Return ``"polygon"`` or ``"yfinance"`` for the result-panel badge.
+
+    Cached at the resource level so the provider isn't reconstructed on
+    every widget interaction. The factory's branching cost is trivial, but
+    repeated httpx-client construction for the Polygon path is not.
+    """
+    provider = make_provider()
+    if isinstance(provider, PolygonProvider):
+        provider.close()
+        return "polygon"
+    if isinstance(provider, YFinanceProvider):
+        return "yfinance"
+    return "unknown"
 
 
 @st.cache_data(show_spinner=False, ttl=60 * 30)
@@ -209,11 +231,13 @@ try:
     # Header
     # --------------------------------------------------------------------------- #
     st.title("Moving-Average Crossover Backtester")
+    _provider_label = _resolve_provider_label()
     st.markdown(
         f"**SMA({fast}, {slow})** on **{ticker}** from "
         f"**{start_date}** to **{end_date}** with **{cost_bps} bps/side** transaction cost. "
         f"All numbers update live as you move the sliders."
     )
+    st.caption(f"data: {_provider_label}")
 
     # --------------------------------------------------------------------------- #
     # Headline metrics

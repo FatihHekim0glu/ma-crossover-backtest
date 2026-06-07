@@ -7,7 +7,7 @@
 ![license](https://img.shields.io/badge/license-MIT-green)
 ![coverage](https://img.shields.io/badge/coverage-97%25-brightgreen)
 
-A from-scratch vectorised Python backtester for the moving-average crossover strategy on US-equity ETFs, with property-tested no-lookahead invariants, Newey-West HAC alpha, and Deflated Sharpe Ratio adjustment for data-snooping.
+A from-scratch vectorised Python backtester for the moving-average crossover strategy on US-equity ETFs, with property-tested no-lookahead invariants, Newey-West HAC alpha, and Deflated Sharpe Ratio adjustment for data-snooping. Now survivorship-bias-aware via optional Polygon.io integration.
 
 > **Headline (SPY, 2010-2024, 5 bps per-side cost):** SMA(50, 200) returns **9.5% CAGR** versus **13.7%** for buy-and-hold. The strategy's Jensen's alpha is +0.84% / year with **p = 0.69** under Newey-West HAC standard errors — we cannot reject the null of zero true skill. Max drawdown is **identical to B&H (-33.7%)**, contradicting the common claim that crossover rules reduce drawdowns. This is the project's honest, expected conclusion; see the references below for the academic consensus.
 
@@ -119,6 +119,40 @@ src/ma_backtester/
 tests/               KIKO + Hypothesis property-based tests
 notebooks/           01 basic backtest -> 05 final report
 ```
+
+## Data sources
+
+The backtester reads end-of-day OHLCV through a small provider abstraction in
+`ma_backtester.data_providers`. The factory picks one of two backends at
+runtime:
+
+| Backend | Selected when | Survivorship-bias-aware? | Notes |
+|---|---|---|---|
+| **Polygon.io** | `POLYGON_API_KEY` is set | Yes — `get_grouped_daily` returns every actively-traded US symbol on a historical date | Recommended for any work that builds an index universe (e.g. point-in-time S&P 500). REST traffic is rate-limited at ~100 req/min with exponential backoff. |
+| **yfinance** (default) | no API key is set | No — delisted tickers silently disappear from the API | Good enough for the single-ticker examples shipped in this repo. Cached locally to `data/cache/ohlcv/*.parquet`. |
+
+Construction is the same for both:
+
+```python
+from ma_backtester.data_providers import make_provider
+
+provider = make_provider()                       # auto: yfinance unless POLYGON_API_KEY is set
+provider = make_provider(api_key="pk_live_...")  # force Polygon
+
+df = provider.get_eod("AAPL", start, end)        # TitleCase OHLCV, tz-naive Date index
+```
+
+The Streamlit app shows a `data: polygon|yfinance` badge in the result panel
+so the active backend is always visible.
+
+To enable Polygon locally:
+
+```bash
+export POLYGON_API_KEY=pk_live_xxx
+uv run streamlit run app.py
+```
+
+For Streamlit Cloud, add `POLYGON_API_KEY` under the app's *Secrets* tab.
 
 ## Limitations
 
