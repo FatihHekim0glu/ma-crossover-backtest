@@ -34,6 +34,6 @@ repos:
 # Type checking deliberately lives outside pre-commit. The RobertCraigie/pyright
 # hook runs pyright in an isolated venv and ships only `additional_dependencies`,
 # which makes runtime imports (pandas, pytest, hypothesis, statsmodels, scipy)
-# unresolvable — yielding ~50 false-positive `reportMissingImports` errors.
+# unresolvable - yielding ~50 false-positive `reportMissingImports` errors.
 # CI runs `uv run pyright src tests` in the project venv as a dedicated step,
 # which is the authoritative type check. Run it locally the same way.

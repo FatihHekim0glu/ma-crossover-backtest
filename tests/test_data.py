@@ -105,7 +105,7 @@ def test_load_ohlcv_live_spy() -> None:
 
 
 # --------------------------------------------------------------------------- #
-# Coverage push — network paths via mock (cycle 6, runs offline)
+# Coverage push - network paths via mock (cycle 6, runs offline)
 # --------------------------------------------------------------------------- #
 
 

@@ -8,7 +8,7 @@ Resolution order
 
 This keeps the standalone repo usable without a Polygon subscription while
 letting the app upgrade to survivorship-bias-aware data the moment a key is
-configured — no code changes required at the call site.
+configured - no code changes required at the call site.
 """
 
 from __future__ import annotations

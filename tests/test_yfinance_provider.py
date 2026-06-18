@@ -84,7 +84,7 @@ def test_get_grouped_daily_raises_polygon_error() -> None:
 
 
 def test_close_is_noop() -> None:
-    """yfinance manages its own session — close must be a safe no-op."""
+    """yfinance manages its own session - close must be a safe no-op."""
     provider = YFinanceProvider()
     assert provider.close() is None
     # Idempotent.

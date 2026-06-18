@@ -8,7 +8,7 @@ For each fold:
 1. Run the full strategy grid on the train slice.
 2. Select the (fast, slow) pair with the highest in-sample Sharpe.
    With ``use_neighbourhood_tiebreak`` (default), break ties by the mean
-   Sharpe over the 8 grid neighbours — picks plateaus rather than spikes.
+   Sharpe over the 8 grid neighbours - picks plateaus rather than spikes.
 3. Evaluate the selected strategy on the OOS slice with no re-tuning.
 
 Out-of-sample slices are **non-overlapping** so the concatenated OOS series
@@ -110,7 +110,7 @@ def _select_best(
 ) -> StrategyConfig:
     valid = {cfg: s for cfg, s in sharpes.items() if not math.isnan(s)}
     if not valid:
-        raise ValueError("All sweep results were NaN — check input data length")
+        raise ValueError("All sweep results were NaN - check input data length")
 
     top_sharpe = max(valid.values())
     tied = [cfg for cfg, s in valid.items() if s == top_sharpe]
@@ -144,7 +144,7 @@ def run_walk_forward(
     For each fold: sweep ``sweep.grid()`` on the train slice, select the
     best (fast, slow) by in-sample Sharpe with neighbourhood tie-break,
     then evaluate on the next OOS slice without re-tuning. Equity
-    compounds across folds — each fold starts with the previous fold's
+    compounds across folds - each fold starts with the previous fold's
     terminal equity. Folds whose in-sample sweep is degenerate (all NaN)
     are skipped with a warning rather than aborting the run.
 
@@ -153,7 +153,7 @@ def run_walk_forward(
     close : pd.Series
         Adjusted close, indexed by a DatetimeIndex.
     ticker : str
-        Label only — used in the returned ``WalkForwardResult.ticker``.
+        Label only - used in the returned ``WalkForwardResult.ticker``.
     sweep : SweepConfig
         Parameter grid to optimise over each train window.
     wf_config : WalkForwardConfig | None

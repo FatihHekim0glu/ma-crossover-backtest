@@ -64,7 +64,7 @@ _HTTP_TIMEOUT = 30.0
 
 
 class _TokenBucket:
-    """Sliding-window rate limiter — at most ``rpm`` requests per 60 seconds.
+    """Sliding-window rate limiter - at most ``rpm`` requests per 60 seconds.
 
     Thread-safe: a single instance can be shared across worker threads inside
     one process. Across processes you'd want a Redis-backed limiter instead.
@@ -277,7 +277,7 @@ class PolygonProvider:
                     {
                         # Polygon's daily aggregates encode the trading day as
                         # the UTC midnight timestamp of that calendar date.
-                        # Do NOT shift to America/New_York — that would move
+                        # Do NOT shift to America/New_York - that would move
                         # the bar back one day.
                         "Date": pd.Timestamp(ts_ms, unit="ms", tz="UTC")
                         .tz_localize(None)

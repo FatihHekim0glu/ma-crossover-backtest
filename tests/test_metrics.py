@@ -1,4 +1,4 @@
-"""Performance metrics — KIKO tests on hand-built series."""
+"""Performance metrics - KIKO tests on hand-built series."""
 
 from __future__ import annotations
 
@@ -168,7 +168,7 @@ def test_sortino_higher_than_sharpe_when_skewed_positive() -> None:
 
 
 # --------------------------------------------------------------------------- #
-# Coverage push — defensive guards and uncovered branches (cycle 6)
+# Coverage push - defensive guards and uncovered branches (cycle 6)
 # --------------------------------------------------------------------------- #
 
 
@@ -230,7 +230,7 @@ def test_trade_statistics_losers_only_gives_zero_profit_factor() -> None:
 
 
 def test_compute_metrics_table_end_to_end() -> None:
-    """Smoke-test the bundling function — exercises every metric path."""
+    """Smoke-test the bundling function - exercises every metric path."""
     from ma_backtester.metrics import compute_metrics_table
 
     equity = _series([100.0, 102.0, 101.0, 105.0])

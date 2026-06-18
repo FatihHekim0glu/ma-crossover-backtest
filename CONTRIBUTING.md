@@ -99,6 +99,6 @@ execution paths.
   [Conventional Commits](https://www.conventionalcommits.org/) subjects,
   e.g. `feat: add EMA crossover variant`, `fix: handle empty close series`,
   `refactor: extract signal_to_position helper`.
-- Do not include AI attribution (no co-authored-by tags, no tool names, no
-  bot signatures) in commits, PR descriptions, code comments, or any other
-  repository artefact.
+- Keep commits, PR descriptions, code comments, and every other repository
+  artefact free of automated tool attribution, extra co-author trailers, and
+  generated-with markers.

@@ -1,4 +1,4 @@
-"""The no-lookahead invariant — the project's central correctness claim.
+"""The no-lookahead invariant - the project's central correctness claim.
 
 If any of these tests fails, the backtester is silently consuming future
 information. Do not weaken these tests to make them pass; fix the engine.

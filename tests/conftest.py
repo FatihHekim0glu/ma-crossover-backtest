@@ -1,6 +1,6 @@
 """Shared test fixtures and Hypothesis strategies.
 
-All synthetic price series here are deterministic (seeded) — no network calls,
+All synthetic price series here are deterministic (seeded) - no network calls,
 no yfinance, no flake. The unit suite must run offline.
 """
 

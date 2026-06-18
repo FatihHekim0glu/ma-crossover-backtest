@@ -85,7 +85,7 @@ def underwater_drawdown(
 
     fig = go.Figure()
     strat_dd = _dd(strategy_equity)
-    # Strategy = blue, Buy & Hold = red (dashed) — matches the equity curve
+    # Strategy = blue, Buy & Hold = red (dashed) - matches the equity curve
     # so the two charts read as a coherent pair.
     fig.add_trace(
         go.Scattergl(
@@ -251,7 +251,7 @@ def parameter_heatmap(
     misinterpreted, and a static caption in a notebook is too easy to skip.
     """
     safe_title = title or (
-        "In-sample parameter sweep — DIAGNOSTIC ONLY"
+        "In-sample parameter sweep - DIAGNOSTIC ONLY"
         "<br><sub>High-Sharpe regions reflect overfitting to one historical path. "
         "Use walk-forward results for selection.</sub>"
     )
@@ -281,7 +281,7 @@ def report_dashboard(
     strategy_returns: pd.Series,
     title: str = "Backtest Report",
 ) -> go.Figure:
-    """Three-panel: equity (log), drawdown, rolling Sharpe — shared x-axis."""
+    """Three-panel: equity (log), drawdown, rolling Sharpe - shared x-axis."""
     fig = make_subplots(
         rows=3,
         cols=1,

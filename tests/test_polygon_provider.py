@@ -371,7 +371,7 @@ def test_provider_reads_api_key_from_env(monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setenv("POLYGON_API_KEY", "env-key")
     provider = PolygonProvider()
     # Sanity: an authenticated request would include the env key. We don't
-    # call the network — just construct successfully.
+    # call the network - just construct successfully.
     assert provider is not None
     provider.close()
 
