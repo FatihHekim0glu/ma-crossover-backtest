@@ -11,12 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `ma_backtester.data_providers` package with a pluggable end-of-day data
   abstraction:
-  - `PolygonProvider` — REST client for Polygon.io aggregates, reference
+  - `PolygonProvider`: REST client for Polygon.io aggregates, reference
     tickers, and grouped-daily snapshots. Sliding-window token bucket
     (default 100 rpm), three-attempt exponential backoff on 429/5xx,
     typed exception hierarchy (`PolygonError`, `PolygonAuthError`,
     `PolygonRateLimitError`, `PolygonDataError`).
-  - `YFinanceProvider` — thin wrapper around the existing `data.load_ohlcv`
+  - `YFinanceProvider`: thin wrapper around the existing `data.load_ohlcv`
     pipeline so the repo keeps running without an API key.
   - `make_provider()` factory that selects Polygon when `POLYGON_API_KEY` is
     set (or passed explicitly) and falls back to yfinance otherwise.
