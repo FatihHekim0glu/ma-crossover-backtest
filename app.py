@@ -101,7 +101,7 @@ def _resolve_provider_label() -> str:
 def cached_cost_sensitivity(
     ticker: str, start: str, end: str, fast: int, slow: int, bps_grid: tuple[float, ...]
 ) -> pd.DataFrame:
-    """Cost-sensitivity table — cached because it costs N backtests per refresh."""
+    """Cost-sensitivity table - cached because it costs N backtests per refresh."""
     close = cached_load_close(ticker, start, end)
     cfg = StrategyConfig(fast_window=fast, slow_window=slow)
     rows: list[dict[str, float]] = []
@@ -212,12 +212,12 @@ with st.sidebar:
         max_value=50.0,
         value=5.0,
         step=0.5,
-        help="5 bps per side ≈ 10 bps round-trip — conservative for liquid US ETFs.",
+        help="5 bps per side ≈ 10 bps round-trip - conservative for liquid US ETFs.",
     )
 
 
 # --------------------------------------------------------------------------- #
-# Run live backtest (cheap — no button needed)
+# Run live backtest (cheap - no button needed)
 # --------------------------------------------------------------------------- #
 try:
     strategy_cfg = StrategyConfig(fast_window=fast, slow_window=slow)
@@ -360,7 +360,7 @@ try:
     )
 
     # --------------------------------------------------------------------------- #
-    # Heavy analyses — gated behind buttons
+    # Heavy analyses - gated behind buttons
     # --------------------------------------------------------------------------- #
     st.divider()
     tab_sweep, tab_wf = st.tabs(["Parameter sweep + DSR", "Walk-forward (the honest one)"])
@@ -369,7 +369,7 @@ try:
         st.markdown(
             "Sweep ~320 (fast, slow) combinations on the **in-sample** window and "
             "apply the Deflated Sharpe Ratio (Bailey & López de Prado, 2014). "
-            "The heatmap is *diagnostic only* — see the caption on the chart."
+            "The heatmap is *diagnostic only* - see the caption on the chart."
         )
         if st.button("Run sweep", key="run_sweep"):
             sharpes, matrix, best_key = cached_sweep(
@@ -437,7 +437,7 @@ try:
                 hide_index=True,
             )
 
-            # In-sample vs out-of-sample Sharpe scatter — the diagnostic chart.
+            # In-sample vs out-of-sample Sharpe scatter - the diagnostic chart.
             fig = go.Figure()
             fig.add_scatter(
                 x=folds_df["IS_sharpe"],

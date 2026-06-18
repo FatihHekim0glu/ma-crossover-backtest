@@ -1,4 +1,4 @@
-"""Structural tests for plotly figure builders — no PNG rendering.
+"""Structural tests for plotly figure builders - no PNG rendering.
 
 Every public function in ``ma_backtester.plotting`` returns a
 ``plotly.graph_objects.Figure``. Tests assert on:

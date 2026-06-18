@@ -28,7 +28,7 @@ def test_generate_folds_anchored() -> None:
 
 
 def test_walk_forward_config_rejects_overlapping_oos() -> None:
-    """step_years < test_years means OOS windows overlap — refuse at construction."""
+    """step_years < test_years means OOS windows overlap - refuse at construction."""
     with pytest.raises(ValueError, match="non-overlapping"):
         WalkForwardConfig(train_years=5, test_years=2, step_years=1)
 
@@ -128,7 +128,7 @@ def test_walk_forward_smoke() -> None:
 
 
 # --------------------------------------------------------------------------- #
-# Coverage push — edge cases in fold logic + selection (cycle 6)
+# Coverage push - edge cases in fold logic + selection (cycle 6)
 # --------------------------------------------------------------------------- #
 
 

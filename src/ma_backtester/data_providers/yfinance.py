@@ -2,7 +2,7 @@
 
 Wraps :func:`ma_backtester.data.load_ohlcv` so the rest of the codebase can
 target the same ``get_eod`` shape regardless of which backend is active.
-Strictly delegates — no re-implementation of caching, retries, or validation.
+Strictly delegates - no re-implementation of caching, retries, or validation.
 
 Methods that yfinance cannot service in the spirit of point-in-time accuracy
 (``get_ticker_meta``, ``get_grouped_daily``) raise :class:`PolygonError` so
@@ -57,5 +57,5 @@ class YFinanceProvider:
         )
 
     def close(self) -> None:
-        # Parity with PolygonProvider — yfinance manages its own session.
+        # Parity with PolygonProvider - yfinance manages its own session.
         return None

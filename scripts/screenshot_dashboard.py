@@ -2,7 +2,7 @@
 
 Used to capture proof-of-life imagery for the README and for QA reviews.
 Waits for real content (the metrics dataframe + the plotly equity curve)
-to render before taking the shot — not just page-load.
+to render before taking the shot - not just page-load.
 """
 
 from __future__ import annotations
@@ -43,7 +43,7 @@ def main() -> int:
         print(f"wrote {full}  ({full.stat().st_size:,} bytes)")
 
         # (3) Walk-forward tab populated. This is the project's punchline
-        # view — the IS-vs-OOS scatter that makes the no-skill conclusion
+        # view - the IS-vs-OOS scatter that makes the no-skill conclusion
         # visceral.
         ctx3 = browser.new_context(viewport={"width": 1920, "height": 4500})
         page3 = ctx3.new_page()
@@ -53,7 +53,7 @@ def main() -> int:
         # Click the walk-forward tab heading (avoid Sweep tab).
         page3.get_by_role("tab", name="Walk-forward (the honest one)").click()
         page3.wait_for_timeout(1500)
-        # Click "Run walk-forward" — it has key="run_wf" in app.py.
+        # Click "Run walk-forward" - it has key="run_wf" in app.py.
         page3.get_by_role("button", name="Run walk-forward").click()
         # The compute is non-trivial (~30s for 319 configs across ~10 folds);
         # wait for the OOS Sharpe metric label to appear.

@@ -114,8 +114,8 @@ def run(
         trades=bench.trades,
     )
 
-    _print_metrics(f"{ticker} — SMA({fast},{slow}) — {cost_bps}bps/side", asdict(strat_metrics))
-    _print_metrics(f"{ticker} — Buy & Hold benchmark", asdict(bench_metrics))
+    _print_metrics(f"{ticker} - SMA({fast},{slow}) - {cost_bps}bps/side", asdict(strat_metrics))
+    _print_metrics(f"{ticker} - Buy & Hold benchmark", asdict(bench_metrics))
 
     comparison = compare_strategies(
         strategy_returns=strat.daily_returns,
@@ -226,4 +226,4 @@ def walk_forward(
             daily_returns=result.concatenated_returns,
             n_trials=DEFAULT_SWEEP.size,
         )
-        _print_metrics("Concatenated OOS — Deflated Sharpe", asdict(dsr))
+        _print_metrics("Concatenated OOS - Deflated Sharpe", asdict(dsr))

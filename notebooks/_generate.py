@@ -2,7 +2,7 @@
 
 This script is the source of truth for notebook structure. Re-run it whenever
 the narrative changes; it overwrites the .ipynb files. Cells are emitted
-without outputs — the reader runs them.
+without outputs - the reader runs them.
 """
 
 from __future__ import annotations
@@ -41,13 +41,13 @@ NB_DIR = Path(__file__).parent
 
 
 # ---------------------------------------------------------------------------
-# 01 — basic backtest
+# 01 - basic backtest
 # ---------------------------------------------------------------------------
 
 NB1 = notebook(
     [
         md(
-            "# 01 — Basic Backtest\n\n"
+            "# 01 - Basic Backtest\n\n"
             "End-to-end sanity check: one ticker, one parameter pair, costs on.\n\n"
             "The point of this notebook is to verify the engine wired up correctly "
             "before we do any analysis. If buy-and-hold doesn't match the price ratio "
@@ -131,13 +131,13 @@ NB1 = notebook(
 )
 
 # ---------------------------------------------------------------------------
-# 02 — parameter sweep (the misleading heatmap)
+# 02 - parameter sweep (the misleading heatmap)
 # ---------------------------------------------------------------------------
 
 NB2 = notebook(
     [
         md(
-            "# 02 — Parameter Sweep (the misleading heatmap)\n\n"
+            "# 02 - Parameter Sweep (the misleading heatmap)\n\n"
             "This notebook demonstrates the data-snooping problem.\n\n"
             "We sweep a 20×20 grid of (fast, slow) windows on SPY in-sample, plot the "
             "Sharpe heatmap, and pick the 'best' parameters. Then we use the Deflated "
@@ -171,7 +171,7 @@ NB2 = notebook(
             "print(f'Best in-sample: SMA({best_cfg.fast_window}, {best_cfg.slow_window})  Sharpe = {sharpes[best_cfg]:.3f}')"
         ),
         md(
-            "## Heatmap — diagnostic only\n\n"
+            "## Heatmap - diagnostic only\n\n"
             "The colour does not represent expected future performance. It represents "
             "how well each pair *happened to fit one historical path*."
         ),
@@ -188,7 +188,7 @@ NB2 = notebook(
         ),
         md(
             "## Effective number of trials\n\n"
-            "The 400 strategies are highly correlated — most pairs produce similar "
+            "The 400 strategies are highly correlated - most pairs produce similar "
             "signals. We use PCA on the strategy-return matrix to estimate the "
             "effective number of *independent* trials. This is what the Deflated "
             "Sharpe Ratio should use, not the raw 400."
@@ -229,13 +229,13 @@ NB2 = notebook(
 )
 
 # ---------------------------------------------------------------------------
-# 03 — walk-forward (the honest version)
+# 03 - walk-forward (the honest version)
 # ---------------------------------------------------------------------------
 
 NB3 = notebook(
     [
         md(
-            "# 03 — Walk-Forward Evaluation\n\n"
+            "# 03 - Walk-Forward Evaluation\n\n"
             "Anchored expanding train window of 5 years; 1-year non-overlapping OOS "
             "test windows; re-optimise every year by best in-sample Sharpe with a "
             "neighbourhood-stability tie-break.\n\n"
@@ -272,7 +272,7 @@ NB3 = notebook(
             ")\n"
             "print(f'{len(wf.folds)} OOS folds.')"
         ),
-        md("## Per-fold table — selected params, in-sample vs out-of-sample"),
+        md("## Per-fold table - selected params, in-sample vs out-of-sample"),
         code(
             "fold_df = pd.DataFrame([{\n"
             "    'fold': f.fold_index,\n"
@@ -287,9 +287,9 @@ NB3 = notebook(
             "fold_df"
         ),
         md(
-            "## In-sample vs out-of-sample Sharpe — the most diagnostic chart\n\n"
+            "## In-sample vs out-of-sample Sharpe - the most diagnostic chart\n\n"
             "If the strategy generalises, points should lie near the y=x line. A flat "
-            "or negative slope means in-sample Sharpe doesn't predict OOS — i.e. we're "
+            "or negative slope means in-sample Sharpe doesn't predict OOS - i.e. we're "
             "overfitting."
         ),
         code(
@@ -338,13 +338,13 @@ NB3 = notebook(
 )
 
 # ---------------------------------------------------------------------------
-# 04 — multi-asset robustness
+# 04 - multi-asset robustness
 # ---------------------------------------------------------------------------
 
 NB4 = notebook(
     [
         md(
-            "# 04 — Multi-Asset Robustness\n\n"
+            "# 04 - Multi-Asset Robustness\n\n"
             "Run the same walk-forward setup on five broad ETFs spanning different "
             "asset classes:\n\n"
             "| Ticker | Asset class | Why include it |\n"
@@ -427,13 +427,13 @@ NB4 = notebook(
 )
 
 # ---------------------------------------------------------------------------
-# 05 — final report (synthesis + honest conclusion)
+# 05 - final report (synthesis + honest conclusion)
 # ---------------------------------------------------------------------------
 
 NB5 = notebook(
     [
         md(
-            "# 05 — Final Report\n\n"
+            "# 05 - Final Report\n\n"
             "Synthesis across the methodology stack. Headline result, statistical "
             "tests, cost sensitivity, and the conclusion paragraph that goes into "
             "the README."
@@ -443,7 +443,7 @@ NB5 = notebook(
             "On SPY 2010-2024 with 5 bps per-side costs, the SMA(50, 200) crossover "
             "**does not generate alpha statistically distinguishable from zero** "
             "after Newey-West HAC adjustment (p = 0.69). Max drawdown is essentially "
-            "identical to buy-and-hold — the common claim that crossover rules "
+            "identical to buy-and-hold - the common claim that crossover rules "
             "reduce drawdowns is not supported on this asset and period. This is "
             "the expected academic consensus (Bajgrowicz & Scaillet 2012) and the "
             "project is structured to demonstrate *how to evaluate that honestly*, "
@@ -497,7 +497,7 @@ NB5 = notebook(
             "})"
         ),
         code(
-            "equity_curve(strategy_equity=strat.equity, benchmark_equity=bench.equity, title='SMA(50, 200) on SPY — strategy vs buy-and-hold')"
+            "equity_curve(strategy_equity=strat.equity, benchmark_equity=bench.equity, title='SMA(50, 200) on SPY - strategy vs buy-and-hold')"
         ),
         md(
             "## Drawdown comparison\n\n"
@@ -546,20 +546,20 @@ NB5 = notebook(
             "worst-drawdown periods (notably the late-2018 selloff and the 2020 "
             "COVID drop) earlier than buy-and-hold and re-enters later, which "
             "reduces maximum drawdown at the cost of return.\n\n"
-            "**This is the expected academic and practitioner consensus** — see "
+            "**This is the expected academic and practitioner consensus** - see "
             "Bajgrowicz & Scaillet (2012). A simple technical rule on a single, "
             "well-studied, liquid index after realistic costs should not produce "
             "alpha. If it did, the more likely explanation would be a bug or data "
             "leak than a market inefficiency.\n\n"
             "## What would be required to turn this into a working strategy\n\n"
-            "1. **Cross-sectional universe** — many liquid futures (commodity, FX, "
+            "1. **Cross-sectional universe** - many liquid futures (commodity, FX, "
             "rates, equity-index), not one equity ETF. Trend-following CTAs harvest "
             "diversified time-series momentum.\n"
-            "2. **Volatility-targeted sizing** — scale exposure to a constant ex-ante "
+            "2. **Volatility-targeted sizing** - scale exposure to a constant ex-ante "
             "vol target so high-vol regimes don't dominate.\n"
-            "3. **Multi-horizon ensemble** — blend (20, 100), (60, 200), (120, 252) "
+            "3. **Multi-horizon ensemble** - blend (20, 100), (60, 200), (120, 252) "
             "rather than committing to a single (fast, slow) pair.\n"
-            "4. **Regime filter** — only trade trend signals when realised vol is in a "
+            "4. **Regime filter** - only trade trend signals when realised vol is in a "
             "trend-friendly band; sit out high-chop periods."
         ),
     ]

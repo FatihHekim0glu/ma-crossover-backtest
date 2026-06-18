@@ -111,7 +111,7 @@ def test_trades_have_consistent_dates(seeded_gbm_prices: pd.Series) -> None:
 
 
 def test_sweep_default_cost_model_is_zero(seeded_gbm_prices: pd.Series) -> None:
-    """``cost_model=None`` falls through to zero-cost — every config runs."""
+    """``cost_model=None`` falls through to zero-cost - every config runs."""
     from ma_backtester.backtester import sweep
     from ma_backtester.config import SweepConfig
 

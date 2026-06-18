@@ -105,7 +105,7 @@ def test_psr_normal_returns_matches_paper_formula() -> None:
 
     This guards against the recurring bug of dropping the +2 from the
     excess-kurtosis adjustment. The drift must be large enough that
-    ``sr^2`` materially contributes to the variance — with zero drift
+    ``sr^2`` materially contributes to the variance - with zero drift
     the ``+2`` correction is numerically invisible and the test would
     pass under the bug.
     """
@@ -124,7 +124,7 @@ def test_psr_normal_returns_matches_paper_formula() -> None:
 
 
 # --------------------------------------------------------------------------- #
-# Coverage push — fallback branches in N_eff and PSR (cycle 6)
+# Coverage push - fallback branches in N_eff and PSR (cycle 6)
 # --------------------------------------------------------------------------- #
 
 
@@ -166,6 +166,6 @@ def test_dsr_defaults_n_effective_to_n_trials() -> None:
 
 # The DSR (kurt+2)/4 correction is locked by the PSR paper-formula test
 # above (test_psr_normal_returns_matches_paper_formula). DSR and PSR share
-# the exact same variance expression in src — a tighter DSR-specific test
+# the exact same variance expression in src - a tighter DSR-specific test
 # is brittle when DSR collapses to a probability near 1.0 (norm.ppf blows
 # up under inversion), so the duplicate is intentionally not added.

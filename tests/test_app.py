@@ -4,7 +4,7 @@ These tests exercise the sidebar widget tree of ``app.py`` end-to-end with
 a mocked ``load_close`` so they never hit yfinance. The two heavier paths
 (parameter sweep, walk-forward) are gated behind ``@pytest.mark.slow``
 because they really do run ~320 backtests / ~10 folds even on synthetic
-data — adequate for nightly CI but excessive for a per-PR run.
+data - adequate for nightly CI but excessive for a per-PR run.
 """
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ def test_ticker_change_to_qqq_reloads() -> None:
 
     We intentionally do NOT assert on the mock call_args_list because
     Streamlit's ``@st.cache_data`` deduplicates identical (ticker, start, end)
-    triples — the call may be served from cache rather than re-invoking
+    triples - the call may be served from cache rather than re-invoking
     our mock. The substantive guarantee is "no exception on re-render".
     """
     with patch(_PATCH_TARGET, return_value=_PRICES):

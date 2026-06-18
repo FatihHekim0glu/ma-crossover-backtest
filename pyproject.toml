@@ -125,7 +125,7 @@ reportReturnType = false
 reportArgumentType = false
 reportAttributeAccessIssue = false
 # pandas-stubs types .loc[] and similar indexers as returning Optional[DataFrame].
-# Same root cause as the other four suppressions above — stubs are too pessimistic.
+# Same root cause as the other four suppressions above - stubs are too pessimistic.
 reportOptionalMemberAccess = false
 
 [tool.pytest.ini_options]
@@ -138,7 +138,7 @@ addopts = [
 ]
 markers = [
     "slow: integration tests that hit the network or take >1s",
-    "unit: fast in-process tests with no I/O — no network, no parquet writes",
+    "unit: fast in-process tests with no I/O - no network, no parquet writes",
     "network: tests that require live network access (skipped by default in CI)",
 ]
 testpaths = ["tests"]
